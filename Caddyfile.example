@@ -1,0 +1,42 @@
+# JobSpresso Caddy Configuration
+#
+# This is a TEMPLATE. On the server, copy this content to /root/caddy/Caddyfile
+#
+# Container names follow Docker Compose naming: {directory-name}-{service}-{number}
+# If your project is in /root/projects/jobspresso, containers are:
+#   - jobspresso-frontend-1
+#   - jobspresso-backend-1
+
+jobspresso.ktexperience.com {
+    # Backend API (must come first - more specific route)
+    handle /api/* {
+        reverse_proxy jobspresso-backend-1:8000
+    }
+
+    # Frontend - serve Next.js app (catch-all)
+    handle {
+        reverse_proxy jobspresso-frontend-1:3000
+    }
+
+    # Enable compression
+    encode gzip
+
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+}
+
+# ===================
+# Adding more projects
+# ===================
+# another.ktexperience.com {
+#     handle /api/* {
+#         reverse_proxy another-backend-1:8000
+#     }
+#     handle {
+#         reverse_proxy another-frontend-1:3000
+#     }
+# }

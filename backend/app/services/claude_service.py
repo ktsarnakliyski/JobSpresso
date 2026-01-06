@@ -160,7 +160,10 @@ Provide your response as JSON:
             if json_match:
                 response_text = json_match.group(0)
 
-        return json.loads(response_text)
+        try:
+            return json.loads(response_text)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Failed to parse AI response as JSON: {e}. Response: {response_text[:500]}")
 
     def _parse_generation_response(self, response_text: str) -> dict:
         """Parse Claude's JSON response for generation."""
@@ -179,6 +182,8 @@ Provide your response as JSON:
             messages=[{"role": "user", "content": prompt}],
         )
 
+        if not message.content or not hasattr(message.content[0], 'text'):
+            raise ValueError("Unexpected response format from Claude API: empty or invalid content")
         response_text = message.content[0].text
         return self._parse_analysis_response(response_text)
 
@@ -195,6 +200,8 @@ Provide your response as JSON:
             messages=[{"role": "user", "content": prompt}],
         )
 
+        if not message.content or not hasattr(message.content[0], 'text'):
+            raise ValueError("Unexpected response format from Claude API: empty or invalid content")
         response_text = message.content[0].text
         return self._parse_generation_response(response_text)
 
@@ -224,5 +231,7 @@ Extract and return as JSON:
             messages=[{"role": "user", "content": prompt}],
         )
 
+        if not message.content or not hasattr(message.content[0], 'text'):
+            raise ValueError("Unexpected response format from Claude API: empty or invalid content")
         response_text = message.content[0].text
         return self._parse_analysis_response(response_text)

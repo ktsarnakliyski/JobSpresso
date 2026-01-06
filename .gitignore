@@ -65,3 +65,8 @@ coverage/
 *.tmp
 *.temp
 .cache/
+
+# Temporary documentation (local notes, deployment guides with secrets, etc.)
+*.temp.md
+*_TEMP.md
+TEMP_*.md
