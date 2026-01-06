@@ -1,4 +1,5 @@
-version: '3.8'
+# Development docker-compose
+# Uses root .env file for environment variables
 
 services:
   frontend:
@@ -23,7 +24,7 @@ services:
     ports:
       - "8100:8000"
     environment:
-      - DATABASE_URL=postgresql://jobspresso:jobspresso@db:5432/jobspresso
+      - DATABASE_URL=postgresql://${DB_USER:-jobspresso}:${DB_PASSWORD:-jobspresso}@db:5432/${DB_NAME:-jobspresso}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     depends_on:
       - db
@@ -33,13 +34,13 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_USER=jobspresso
-      - POSTGRES_PASSWORD=jobspresso
-      - POSTGRES_DB=jobspresso
+      - POSTGRES_USER=${DB_USER:-jobspresso}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-jobspresso}
+      - POSTGRES_DB=${DB_NAME:-jobspresso}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
 volumes:
   postgres_data:

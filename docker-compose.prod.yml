@@ -1,0 +1,57 @@
+# Production docker-compose
+# Connects to shared Caddy network for multi-project VM setup
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+      args:
+        - NEXT_PUBLIC_API_URL=https://jobspresso.ktexperience.com
+    restart: always
+    expose:
+      - "3000"
+    depends_on:
+      - backend
+    networks:
+      - caddy-network
+      - internal
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    restart: always
+    expose:
+      - "8000"
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      - db
+    networks:
+      - caddy-network
+      - internal
+
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+volumes:
+  postgres_data:
+
+networks:
+  # Shared network for Caddy to reach this project
+  caddy-network:
+    external: true
+  # Internal network for db (not exposed to Caddy)
+  internal:
+    driver: bridge
