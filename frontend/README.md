@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# JobSpresso Frontend
 
-## Getting Started
+Next.js 14 application with TypeScript and Tailwind CSS.
 
-First, run the development server:
+## Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Install dependencies
+npm install
+
+# Start development server (port 3100)
+npm run dev -- -p 3100
+
+# Build for production
+npm run build
+
+# Run linting
+npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Project Structure
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+├── app/
+│   ├── page.tsx          # Home/landing page
+│   ├── analyze/page.tsx  # JD analyzer
+│   ├── generate/page.tsx # JD generator
+│   ├── layout.tsx        # Root layout
+│   └── globals.css       # Global styles + Tailwind
+├── components/
+│   ├── Input.tsx         # Shared input component
+│   ├── ErrorCard.tsx     # Error display
+│   ├── LoadingSpinner.tsx
+│   └── CopyButton.tsx    # Clipboard copy
+├── lib/
+│   ├── api.ts            # Backend API client
+│   └── utils.ts          # Utilities (cn, etc.)
+└── types/
+    └── voice.ts          # Voice profile types
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment Variables
 
-## Learn More
+The frontend uses a single environment variable set at build time:
 
-To learn more about Next.js, take a look at the following resources:
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `NEXT_PUBLIC_API_URL` | Backend API URL | `http://localhost:8100` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+For development, this is set in `docker-compose.yml`.
+For production, it's passed as a build arg in `docker-compose.prod.yml`.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Docker
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Development and production Dockerfiles:
+- `Dockerfile` — Development with hot reload
+- `Dockerfile.prod` — Multi-stage production build (standalone output)
