@@ -26,11 +26,11 @@ JobSpresso is a job description analyzer and generator with voice profiles for a
 # Start all services
 docker compose up
 
-# Frontend only (port 3000)
-cd frontend && npm run dev
+# Frontend only (port 3100)
+cd frontend && npm run dev -- -p 3100
 
-# Backend only (port 8000)
-cd backend && source .venv/bin/activate && uvicorn app.main:app --reload
+# Backend only (port 8100)
+cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8100
 ```
 
 ### Testing

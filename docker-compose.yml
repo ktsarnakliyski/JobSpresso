@@ -6,9 +6,9 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3100:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NEXT_PUBLIC_API_URL=http://localhost:8100
     depends_on:
       - backend
     volumes:
@@ -21,7 +21,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "8100:8000"
     environment:
       - DATABASE_URL=postgresql://jobspresso:jobspresso@db:5432/jobspresso
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
