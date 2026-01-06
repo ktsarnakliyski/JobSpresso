@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
-from app.routers import analyze, generate
+from app.routers import analyze, generate, voice
 
 settings = get_settings()
 
@@ -21,6 +21,7 @@ app.add_middleware(
 # Include routers
 app.include_router(analyze.router)
 app.include_router(generate.router)
+app.include_router(voice.router)
 
 
 @app.get("/health")
