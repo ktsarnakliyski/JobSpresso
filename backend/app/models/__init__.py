@@ -7,6 +7,14 @@ from app.models.assessment import (
     AssessmentResult,
     ScoreInterpretation,
 )
+from app.models.voice_profile import (
+    VoiceProfile,
+    VoiceProfileCreate,
+    ToneStyle,
+    AddressStyle,
+    SentenceStyle,
+    ExtractVoiceRequest,
+)
 
 __all__ = [
     "AssessmentCategory",
@@ -14,4 +22,10 @@ __all__ = [
     "IssueSeverity",
     "AssessmentResult",
     "ScoreInterpretation",
+    "VoiceProfile",
+    "VoiceProfileCreate",
+    "ToneStyle",
+    "AddressStyle",
+    "SentenceStyle",
+    "ExtractVoiceRequest",
 ]
