@@ -9,7 +9,7 @@ const STORAGE_KEY = 'jobspresso_voice_profiles';
 const SELECTED_PROFILE_KEY = 'jobspresso_selected_profile';
 
 function generateId(): string {
-  return `profile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `profile_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 }
 
 export function useVoiceProfiles() {
@@ -90,10 +90,9 @@ export function useVoiceProfiles() {
 
   const deleteProfile = useCallback((id: string) => {
     setProfiles((prev) => prev.filter((p) => p.id !== id));
-    if (selectedProfileId === id) {
-      setSelectedProfileId(null);
-    }
-  }, [selectedProfileId]);
+    // Use functional update to avoid stale closure
+    setSelectedProfileId((prev) => (prev === id ? null : prev));
+  }, []);
 
   const selectProfile = useCallback((id: string | null) => {
     setSelectedProfileId(id);

@@ -6,6 +6,7 @@ import { useState, useCallback } from 'react';
 import { apiRequest } from '@/lib/api';
 import { AssessmentResult, Issue, AssessmentCategory } from '@/types/assessment';
 import { VoiceProfile } from '@/types/voice-profile';
+import { transformVoiceProfileToBackend } from '@/lib/transforms';
 
 interface AnalyzeResponse {
   overall_score: number;
@@ -41,21 +42,6 @@ function transformResponse(response: AnalyzeResponse): AssessmentResult {
   };
 }
 
-function transformVoiceProfile(profile: VoiceProfile) {
-  return {
-    id: profile.id,
-    name: profile.name,
-    tone: profile.tone,
-    address_style: profile.addressStyle,
-    sentence_style: profile.sentenceStyle,
-    words_to_avoid: profile.wordsToAvoid,
-    words_to_prefer: profile.wordsToPrefer,
-    structure_preference: profile.structurePreference,
-    example_jd: profile.exampleJd,
-    is_default: profile.isDefault,
-  };
-}
-
 export function useAnalyze() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,12 +53,12 @@ export function useAnalyze() {
       setError(null);
 
       try {
-        const body: { jd_text: string; voice_profile?: ReturnType<typeof transformVoiceProfile> } = {
+        const body: { jd_text: string; voice_profile?: ReturnType<typeof transformVoiceProfileToBackend> } = {
           jd_text: jdText,
         };
 
         if (voiceProfile) {
-          body.voice_profile = transformVoiceProfile(voiceProfile);
+          body.voice_profile = transformVoiceProfileToBackend(voiceProfile);
         }
 
         const response = await apiRequest<AnalyzeResponse>('/api/analyze', {

@@ -147,25 +147,25 @@ export default function ProfilesPage() {
 
   if (!isLoaded) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Voice Profiles</h1>
-          <p className="text-gray-600 mt-1">Loading...</p>
+      <div className="space-y-8">
+        <div className="animate-fade-up">
+          <h1 className="text-2xl font-bold text-espresso-900 tracking-tight">Voice Profiles</h1>
+          <p className="text-espresso-600 mt-2">Loading...</p>
         </div>
-        <div className="animate-pulse space-y-4">
-          <div className="h-32 bg-gray-200 rounded-lg" />
-          <div className="h-32 bg-gray-200 rounded-lg" />
+        <div className="space-y-4">
+          <div className="h-32 bg-espresso-100 rounded-2xl shimmer" />
+          <div className="h-32 bg-espresso-100 rounded-2xl shimmer" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
+    <div className="space-y-8">
+      <div className="flex items-start justify-between animate-fade-up">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Voice Profiles</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-espresso-900 tracking-tight">Voice Profiles</h1>
+          <p className="text-espresso-600 mt-2">
             Create and manage profiles to customize how job descriptions are written.
           </p>
         </div>
@@ -180,15 +180,24 @@ export default function ProfilesPage() {
           {profiles.length > 0 && (
             <>
               <Button variant="outline" size="sm" onClick={exportProfiles}>
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
                 Export
               </Button>
               <Button variant="outline" size="sm" onClick={handleImport}>
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
                 Import
               </Button>
             </>
           )}
           {!showForm && (
             <Button onClick={() => setShowForm(true)}>
+              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
               Create Profile
             </Button>
           )}
@@ -196,9 +205,16 @@ export default function ProfilesPage() {
       </div>
 
       {importError && (
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-red-50 animate-scale-in">
           <div className="flex items-center justify-between">
-            <p className="text-red-600">{importError}</p>
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
+                <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <p className="text-red-700">{importError}</p>
+            </div>
             <Button
               variant="ghost"
               size="sm"
@@ -212,20 +228,24 @@ export default function ProfilesPage() {
 
       {/* Create/Edit Form */}
       {showForm && (
-        <Card>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <Card className="animate-scale-in">
+          <h2 className="text-lg font-semibold text-espresso-900 mb-5">
             {editingId ? 'Edit Profile' : 'Create New Profile'}
           </h2>
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-espresso-700 mb-2">
                 Profile Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 className={cn(
-                  'w-full rounded-lg border border-gray-300 px-4 py-2',
-                  'focus:border-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-opacity-20'
+                  'w-full rounded-xl border border-espresso-200 px-4 py-2.5',
+                  'bg-white text-espresso-900',
+                  'transition-all duration-200 ease-out-expo',
+                  'placeholder:text-espresso-400',
+                  'hover:border-espresso-300',
+                  'focus:border-espresso-500 focus:ring-2 focus:ring-espresso-500/15 focus:outline-none'
                 )}
                 placeholder="e.g., Startup Voice, Corporate Formal"
                 value={formData.name}
@@ -233,7 +253,7 @@ export default function ProfilesPage() {
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-5">
               <Select
                 label="Tone"
                 options={TONE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
@@ -249,7 +269,7 @@ export default function ProfilesPage() {
               />
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-5">
               <Select
                 label="Sentence Style"
                 options={SENTENCE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
@@ -286,7 +306,7 @@ export default function ProfilesPage() {
               rows={2}
             />
 
-            <div className="flex gap-3">
+            <div className="flex gap-3 pt-2">
               <Button onClick={handleSubmit} disabled={!formData.name.trim()}>
                 {editingId ? 'Update Profile' : 'Create Profile'}
               </Button>
@@ -300,29 +320,34 @@ export default function ProfilesPage() {
 
       {/* Profiles List */}
       {profiles.length === 0 && !showForm ? (
-        <Card>
-          <div className="text-center py-8">
-            <svg
-              className="w-12 h-12 text-gray-400 mx-auto mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-              />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+        <Card className="animate-fade-up [animation-delay:100ms] opacity-0">
+          <div className="text-center py-12">
+            <div className="w-16 h-16 bg-espresso-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
+              <svg
+                className="w-8 h-8 text-espresso-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-espresso-900 mb-2">
               No Voice Profiles Yet
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-espresso-600 mb-6 max-w-sm mx-auto">
               Create your first voice profile to customize how job descriptions are written.
             </p>
-            <div className="flex gap-2 justify-center">
+            <div className="flex gap-3 justify-center">
               <Button onClick={() => setShowForm(true)}>
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
                 Create Profile
               </Button>
               <Button variant="outline" onClick={handleImport}>
@@ -333,19 +358,26 @@ export default function ProfilesPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {profiles.map((profile) => (
-            <Card key={profile.id}>
+          {profiles.map((profile, index) => (
+            <Card
+              key={profile.id}
+              hover
+              className={cn(
+                'animate-fade-up opacity-0',
+                `[animation-delay:${(index + 1) * 50}ms]`
+              )}
+            >
               <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-lg font-semibold text-espresso-900 truncate">
                       {profile.name}
                     </h3>
                     {profile.isDefault && (
                       <Badge variant="success">Default</Badge>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-2 text-sm text-gray-600 mb-3">
+                  <div className="flex flex-wrap gap-2 mb-3">
                     <Badge variant="default">
                       {TONE_OPTIONS.find((o) => o.value === profile.tone)?.label}
                     </Badge>
@@ -360,25 +392,29 @@ export default function ProfilesPage() {
                     </Badge>
                   </div>
                   {(profile.wordsToAvoid.length > 0 || profile.wordsToPrefer.length > 0) && (
-                    <div className="text-sm text-gray-500 space-y-1">
+                    <div className="text-sm text-espresso-600 space-y-1">
                       {profile.wordsToAvoid.length > 0 && (
                         <p>
-                          <span className="font-medium">Avoid:</span>{' '}
+                          <span className="font-medium text-espresso-700">Avoid:</span>{' '}
                           {profile.wordsToAvoid.slice(0, 5).join(', ')}
-                          {profile.wordsToAvoid.length > 5 && ` +${profile.wordsToAvoid.length - 5} more`}
+                          {profile.wordsToAvoid.length > 5 && (
+                            <span className="text-espresso-500"> +{profile.wordsToAvoid.length - 5} more</span>
+                          )}
                         </p>
                       )}
                       {profile.wordsToPrefer.length > 0 && (
                         <p>
-                          <span className="font-medium">Prefer:</span>{' '}
+                          <span className="font-medium text-espresso-700">Prefer:</span>{' '}
                           {profile.wordsToPrefer.slice(0, 5).join(', ')}
-                          {profile.wordsToPrefer.length > 5 && ` +${profile.wordsToPrefer.length - 5} more`}
+                          {profile.wordsToPrefer.length > 5 && (
+                            <span className="text-espresso-500"> +{profile.wordsToPrefer.length - 5} more</span>
+                          )}
                         </p>
                       )}
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2 ml-4">
+                <div className="flex gap-2 ml-4 flex-shrink-0">
                   {!profile.isDefault && (
                     <Button
                       variant="ghost"
@@ -398,7 +434,7 @@ export default function ProfilesPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-red-600 hover:bg-red-50"
+                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
                     onClick={() => handleDelete(profile.id)}
                   >
                     Delete

@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Card, Button, TextArea } from '@/components/ui';
+import { Card, Button, TextArea, LoadingSpinner, ErrorCard, CopyButton } from '@/components/ui';
 import { VoiceProfileSelector } from '@/components/VoiceProfileSelector';
 import { ScoreDisplay } from '@/components/ScoreDisplay';
 import { useAnalyze } from '@/hooks/useAnalyze';
@@ -12,7 +12,6 @@ import { useVoiceProfiles } from '@/hooks/useVoiceProfiles';
 export default function AnalyzePage() {
   const [jdText, setJdText] = useState('');
   const [improvedText, setImprovedText] = useState('');
-  const [copied, setCopied] = useState(false);
 
   const {
     profiles,
@@ -34,15 +33,6 @@ export default function AnalyzePage() {
     await analyze(improvedText, selectedProfile || undefined);
   }, [improvedText, selectedProfile, analyze]);
 
-  const handleCopy = useCallback(async () => {
-    const textToCopy = improvedText || result?.improvedText || '';
-    if (!textToCopy) return;
-
-    await navigator.clipboard.writeText(textToCopy);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, [improvedText, result?.improvedText]);
-
   const handleReset = useCallback(() => {
     setJdText('');
     setImprovedText('');
@@ -50,17 +40,17 @@ export default function AnalyzePage() {
   }, [reset]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Analyze Job Description</h1>
-        <p className="text-gray-600 mt-1">
+    <div className="space-y-8">
+      <div className="animate-fade-up">
+        <h1 className="text-2xl font-bold text-espresso-900 tracking-tight">Analyze Job Description</h1>
+        <p className="text-espresso-600 mt-2">
           Paste a job description to get a detailed assessment and improvement suggestions.
         </p>
       </div>
 
       {/* Input Section */}
-      <Card>
-        <div className="space-y-4">
+      <Card className="animate-fade-up [animation-delay:100ms] opacity-0">
+        <div className="space-y-5">
           <TextArea
             label="Job Description"
             placeholder="Paste your job description here..."
@@ -77,12 +67,17 @@ export default function AnalyzePage() {
             isLoaded={isLoaded}
           />
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 pt-2">
             <Button
               onClick={handleAnalyze}
               disabled={!jdText.trim() || isLoading}
             >
-              {isLoading ? 'Analyzing...' : 'Analyze'}
+              {isLoading ? (
+                <>
+                  <LoadingSpinner className="-ml-1 mr-2" />
+                  Analyzing...
+                </>
+              ) : 'Analyze'}
             </Button>
             {(result || jdText) && (
               <Button variant="outline" onClick={handleReset}>
@@ -94,51 +89,26 @@ export default function AnalyzePage() {
       </Card>
 
       {/* Error Display */}
-      {error && (
-        <Card className="border-red-200 bg-red-50">
-          <div className="flex items-start gap-3">
-            <svg
-              className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            <div>
-              <h3 className="font-medium text-red-800">Analysis Failed</h3>
-              <p className="text-sm text-red-600 mt-1">{error}</p>
-            </div>
-          </div>
-        </Card>
-      )}
+      {error && <ErrorCard title="Analysis Failed" message={error} />}
 
       {/* Results Section */}
       {result && (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-fade-up">
           <ScoreDisplay result={result} />
 
           {/* Improved Text */}
           {result.improvedText && (
             <Card>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Improved Version
-                </h3>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleCopy}
-                  >
-                    {copied ? 'Copied!' : 'Copy'}
-                  </Button>
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="text-lg font-semibold text-espresso-900">
+                    Improved Version
+                  </h3>
+                  <p className="text-sm text-espresso-500 mt-0.5">
+                    Edit below and reassess to see your changes scored
+                  </p>
                 </div>
+                <CopyButton text={improvedText || result.improvedText} />
               </div>
 
               <TextArea
@@ -149,9 +119,14 @@ export default function AnalyzePage() {
               />
 
               {improvedText && improvedText !== result.improvedText && (
-                <div className="mt-4 flex gap-2">
+                <div className="mt-5 flex gap-3 pt-4 border-t border-espresso-100">
                   <Button onClick={handleReassess} disabled={isLoading}>
-                    {isLoading ? 'Reassessing...' : 'Reassess Changes'}
+                    {isLoading ? (
+                      <>
+                        <LoadingSpinner className="-ml-1 mr-2" />
+                        Reassessing...
+                      </>
+                    ) : 'Reassess Changes'}
                   </Button>
                   <Button
                     variant="ghost"

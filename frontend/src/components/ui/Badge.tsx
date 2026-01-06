@@ -14,17 +14,18 @@ export function Badge({
   ...props
 }: BadgeProps) {
   const variants = {
-    default: 'bg-gray-100 text-gray-700',
-    success: 'bg-green-100 text-green-700',
-    warning: 'bg-yellow-100 text-yellow-700',
-    error: 'bg-red-100 text-red-700',
-    info: 'bg-blue-100 text-blue-700',
+    default: 'bg-espresso-100 text-espresso-700 border-espresso-200',
+    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    warning: 'bg-amber-50 text-amber-700 border-amber-200',
+    error: 'bg-red-50 text-red-700 border-red-200',
+    info: 'bg-sky-50 text-sky-700 border-sky-200',
   };
 
   return (
     <span
       className={cn(
-        'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+        'inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium',
+        'border transition-colors duration-200',
         variants[variant],
         className
       )}

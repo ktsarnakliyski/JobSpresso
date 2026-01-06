@@ -6,6 +6,7 @@ import { useState, useCallback } from 'react';
 import { apiRequest } from '@/lib/api';
 import { GenerateResult } from '@/types/assessment';
 import { VoiceProfile } from '@/types/voice-profile';
+import { transformVoiceProfileToBackend } from '@/lib/transforms';
 
 export interface GenerateInput {
   roleTitle: string;
@@ -23,20 +24,6 @@ interface GenerateResponse {
   generated_jd: string;
   word_count: number;
   notes: string[];
-}
-
-function transformVoiceProfile(profile: VoiceProfile) {
-  return {
-    id: profile.id,
-    name: profile.name,
-    tone: profile.tone,
-    address_style: profile.addressStyle,
-    sentence_style: profile.sentenceStyle,
-    words_to_avoid: profile.wordsToAvoid,
-    words_to_prefer: profile.wordsToPrefer,
-    structure_preference: profile.structurePreference,
-    is_default: profile.isDefault,
-  };
 }
 
 export function useGenerate() {
@@ -62,7 +49,7 @@ export function useGenerate() {
         if (input.location) body.location = input.location;
         if (input.benefits) body.benefits = input.benefits;
         if (input.niceToHave) body.nice_to_have = input.niceToHave;
-        if (voiceProfile) body.voice_profile = transformVoiceProfile(voiceProfile);
+        if (voiceProfile) body.voice_profile = transformVoiceProfileToBackend(voiceProfile);
 
         const response = await apiRequest<GenerateResponse>('/api/generate', {
           method: 'POST',

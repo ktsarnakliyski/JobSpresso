@@ -5,10 +5,11 @@ import { cn } from '@/lib/utils';
 
 interface CardProps extends HTMLAttributes<HTMLDivElement> {
   padding?: 'none' | 'sm' | 'md' | 'lg';
+  hover?: boolean;
 }
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ className, padding = 'md', children, ...props }, ref) => {
+  ({ className, padding = 'md', hover = false, children, ...props }, ref) => {
     const paddings = {
       none: '',
       sm: 'p-4',
@@ -20,7 +21,9 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={cn(
-          'bg-white rounded-xl border border-gray-200 shadow-sm',
+          'bg-white rounded-2xl border border-espresso-200/60',
+          'shadow-soft transition-all duration-300 ease-out-expo',
+          hover && 'hover:shadow-soft-md hover:border-espresso-200',
           paddings[padding],
           className
         )}

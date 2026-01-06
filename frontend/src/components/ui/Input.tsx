@@ -1,14 +1,14 @@
-// frontend/src/components/ui/TextArea.tsx
+// frontend/src/components/ui/Input.tsx
 
-import { TextareaHTMLAttributes, forwardRef } from 'react';
+import { InputHTMLAttributes, forwardRef, ReactNode } from 'react';
 import { cn, getInputBaseClasses } from '@/lib/utils';
 
-interface TextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
-  label?: React.ReactNode;
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: ReactNode;
   error?: string;
 }
 
-export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
+export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ className, label, error, id, disabled, ...props }, ref) => {
     return (
       <div className="w-full">
@@ -20,13 +20,13 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
             {label}
           </label>
         )}
-        <textarea
+        <input
           ref={ref}
           id={id}
           disabled={disabled}
           className={cn(
             getInputBaseClasses({ disabled, error: !!error }),
-            'py-3 resize-none',
+            'py-2.5',
             className
           )}
           {...props}
@@ -44,4 +44,4 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
   }
 );
 
-TextArea.displayName = 'TextArea';
+Input.displayName = 'Input';
