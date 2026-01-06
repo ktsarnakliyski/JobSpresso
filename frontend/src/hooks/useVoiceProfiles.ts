@@ -1,0 +1,147 @@
+// frontend/src/hooks/useVoiceProfiles.ts
+
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { VoiceProfile } from '@/types/voice-profile';
+
+const STORAGE_KEY = 'jobspresso_voice_profiles';
+const SELECTED_PROFILE_KEY = 'jobspresso_selected_profile';
+
+function generateId(): string {
+  return `profile_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+export function useVoiceProfiles() {
+  const [profiles, setProfiles] = useState<VoiceProfile[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setProfiles(parsed);
+      } catch (e) {
+        console.error('Failed to parse stored profiles:', e);
+      }
+    }
+
+    const selectedId = localStorage.getItem(SELECTED_PROFILE_KEY);
+    if (selectedId) {
+      setSelectedProfileId(selectedId);
+    }
+
+    setIsLoaded(true);
+  }, []);
+
+  // Save to localStorage whenever profiles change
+  useEffect(() => {
+    if (!isLoaded) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+  }, [profiles, isLoaded]);
+
+  // Save selected profile ID
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (selectedProfileId) {
+      localStorage.setItem(SELECTED_PROFILE_KEY, selectedProfileId);
+    } else {
+      localStorage.removeItem(SELECTED_PROFILE_KEY);
+    }
+  }, [selectedProfileId, isLoaded]);
+
+  const addProfile = useCallback((profile: Omit<VoiceProfile, 'id' | 'createdAt'>) => {
+    const newProfile: VoiceProfile = {
+      ...profile,
+      id: generateId(),
+      createdAt: new Date().toISOString(),
+    };
+
+    setProfiles((prev) => {
+      // If this is set as default, unset others
+      if (newProfile.isDefault) {
+        return [...prev.map((p) => ({ ...p, isDefault: false })), newProfile];
+      }
+      return [...prev, newProfile];
+    });
+
+    return newProfile;
+  }, []);
+
+  const updateProfile = useCallback((id: string, updates: Partial<VoiceProfile>) => {
+    setProfiles((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          return { ...p, ...updates };
+        }
+        // If updating to default, unset others
+        if (updates.isDefault) {
+          return { ...p, isDefault: false };
+        }
+        return p;
+      })
+    );
+  }, []);
+
+  const deleteProfile = useCallback((id: string) => {
+    setProfiles((prev) => prev.filter((p) => p.id !== id));
+    if (selectedProfileId === id) {
+      setSelectedProfileId(null);
+    }
+  }, [selectedProfileId]);
+
+  const selectProfile = useCallback((id: string | null) => {
+    setSelectedProfileId(id);
+  }, []);
+
+  const selectedProfile = profiles.find((p) => p.id === selectedProfileId) || null;
+  const defaultProfile = profiles.find((p) => p.isDefault) || null;
+
+  const exportProfiles = useCallback(() => {
+    const dataStr = JSON.stringify(profiles, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `jobspresso-profiles-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+
+    URL.revokeObjectURL(url);
+  }, [profiles]);
+
+  const importProfiles = useCallback((jsonString: string) => {
+    try {
+      const imported = JSON.parse(jsonString) as VoiceProfile[];
+      // Regenerate IDs to avoid conflicts
+      const withNewIds = imported.map((p) => ({
+        ...p,
+        id: generateId(),
+        createdAt: new Date().toISOString(),
+      }));
+      setProfiles((prev) => [...prev, ...withNewIds]);
+      return { success: true, count: withNewIds.length };
+    } catch {
+      return { success: false, error: 'Invalid JSON format' };
+    }
+  }, []);
+
+  return {
+    profiles,
+    selectedProfile,
+    defaultProfile,
+    selectedProfileId,
+    isLoaded,
+    addProfile,
+    updateProfile,
+    deleteProfile,
+    selectProfile,
+    exportProfiles,
+    importProfiles,
+  };
+}
