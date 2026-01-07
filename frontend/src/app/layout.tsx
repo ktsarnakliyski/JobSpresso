@@ -19,10 +19,6 @@ const geistMono = localFont({
 export const metadata: Metadata = {
   title: "JobSpresso - Fresh Job Descriptions",
   description: "Analyze and generate inclusive, clear job descriptions",
-  icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
-  },
 };
 
 export default function RootLayout({
