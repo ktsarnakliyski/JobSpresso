@@ -23,13 +23,45 @@ class AnalyzeRequestBody(BaseModel):
     voice_profile: Optional[VoiceProfile] = None
 
 
+class CategoryEvidenceResponse(BaseModel):
+    score: float
+    status: str  # good, warning, critical
+    supporting_excerpts: list[str]
+    missing_elements: list[str]
+    opportunity: str
+    impact_prediction: Optional[str] = None
+
+
+class QuestionCoverageResponse(BaseModel):
+    question_id: str
+    question_text: str
+    is_answered: bool
+    importance: str
+    evidence: Optional[str] = None
+    suggestion: Optional[str] = None
+    impact_stat: str
+
+
 class AnalyzeResponse(BaseModel):
+    # Core scores
     overall_score: float
     interpretation: str
     category_scores: dict[str, float]
     issues: list[dict]
     positives: list[str]
     improved_text: str
+
+    # Evidence-based breakdown (COSMO-inspired)
+    category_evidence: dict[str, CategoryEvidenceResponse]
+
+    # Question coverage (Rufus Q&A-inspired)
+    question_coverage: list[QuestionCoverageResponse]
+    questions_answered: int
+    questions_total: int
+    question_coverage_percent: int
+
+    # HR metrics
+    estimated_application_boost: Optional[int] = None
 
 
 @router.post("/analyze", response_model=AnalyzeResponse)
@@ -39,12 +71,39 @@ async def analyze_jd(
 ):
     """
     Analyze a job description and return scores, issues, and improvements.
+    Enhanced with evidence-based scoring and candidate question coverage.
     """
     try:
         result = await service.analyze(
             jd_text=body.jd_text,
             voice_profile=body.voice_profile,
         )
+
+        # Build category evidence response
+        category_evidence = {}
+        for cat, evidence in result.category_evidence.items():
+            category_evidence[cat.value] = CategoryEvidenceResponse(
+                score=evidence.score,
+                status=evidence.status.value,
+                supporting_excerpts=evidence.supporting_excerpts,
+                missing_elements=evidence.missing_elements,
+                opportunity=evidence.opportunity,
+                impact_prediction=evidence.impact_prediction,
+            )
+
+        # Build question coverage response
+        question_coverage = [
+            QuestionCoverageResponse(
+                question_id=q.question_id,
+                question_text=q.question_text,
+                is_answered=q.is_answered,
+                importance=q.importance,
+                evidence=q.evidence,
+                suggestion=q.suggestion,
+                impact_stat=q.impact_stat,
+            )
+            for q in result.question_coverage
+        ]
 
         return AnalyzeResponse(
             overall_score=result.overall_score,
@@ -65,6 +124,12 @@ async def analyze_jd(
             ],
             positives=result.positives,
             improved_text=result.improved_text,
+            category_evidence=category_evidence,
+            question_coverage=question_coverage,
+            questions_answered=result.questions_answered,
+            questions_total=result.questions_total,
+            question_coverage_percent=result.question_coverage_percent,
+            estimated_application_boost=result.estimated_application_boost,
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

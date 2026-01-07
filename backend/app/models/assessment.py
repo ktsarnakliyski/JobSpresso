@@ -5,6 +5,43 @@ from typing import Optional
 from pydantic import BaseModel, computed_field
 
 
+class EvidenceStatus(str, Enum):
+    """Status indicator for category evidence (like COSMO's checkmarks)."""
+    GOOD = "good"  # ✓ - Score >= 80
+    WARNING = "warning"  # ⚠ - Score 50-79
+    CRITICAL = "critical"  # ✗ - Score < 50
+
+    @classmethod
+    def from_score(cls, score: float) -> "EvidenceStatus":
+        if score >= 80:
+            return cls.GOOD
+        elif score >= 50:
+            return cls.WARNING
+        else:
+            return cls.CRITICAL
+
+
+class CategoryEvidence(BaseModel):
+    """Evidence supporting a category score (COSMO-inspired)."""
+    score: float
+    status: EvidenceStatus
+    supporting_excerpts: list[str]  # Text from JD that earns points
+    missing_elements: list[str]  # What's absent or needs improvement
+    opportunity: str  # Main actionable improvement
+    impact_prediction: Optional[str] = None  # e.g., "Adding X could increase Y by Z%"
+
+
+class QuestionCoverageItem(BaseModel):
+    """Whether a candidate question is answered (Rufus Q&A-inspired)."""
+    question_id: str
+    question_text: str
+    is_answered: bool
+    importance: str  # high, medium, low
+    evidence: Optional[str] = None  # Excerpt that answers the question
+    suggestion: Optional[str] = None  # How to answer if missing
+    impact_stat: str  # Research-backed statistic
+
+
 class AssessmentCategory(str, Enum):
     INCLUSIVITY = "inclusivity"
     READABILITY = "readability"
@@ -86,10 +123,23 @@ class Issue(BaseModel):
 
 
 class AssessmentResult(BaseModel):
+    """Full assessment result with evidence and question coverage."""
+    # Core scores
     category_scores: dict[AssessmentCategory, float]
     issues: list[Issue]
     positives: list[str]
     improved_text: str
+
+    # NEW: Evidence-based breakdown (COSMO-inspired)
+    category_evidence: dict[AssessmentCategory, CategoryEvidence] = {}
+
+    # NEW: Candidate question coverage (Rufus Q&A-inspired)
+    question_coverage: list[QuestionCoverageItem] = []
+    questions_answered: int = 0
+    questions_total: int = 0
+
+    # NEW: HR-specific metrics
+    estimated_application_boost: Optional[int] = None  # e.g., 35 means +35%
 
     @computed_field
     @property
@@ -104,3 +154,10 @@ class AssessmentResult(BaseModel):
     @property
     def interpretation(self) -> ScoreInterpretation:
         return ScoreInterpretation.from_score(self.overall_score)
+
+    @computed_field
+    @property
+    def question_coverage_percent(self) -> int:
+        if self.questions_total == 0:
+            return 0
+        return round((self.questions_answered / self.questions_total) * 100)

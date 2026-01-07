@@ -4,9 +4,36 @@
 
 import { useState, useCallback } from 'react';
 import { apiRequest } from '@/lib/api';
-import { AssessmentResult, Issue, AssessmentCategory } from '@/types/assessment';
+import {
+  AssessmentResult,
+  Issue,
+  AssessmentCategory,
+  CategoryEvidence,
+  QuestionCoverage,
+  EvidenceStatus,
+  QuestionImportance,
+} from '@/types/assessment';
 import { VoiceProfile } from '@/types/voice-profile';
 import { transformVoiceProfileToBackend } from '@/lib/transforms';
+
+interface CategoryEvidenceResponse {
+  score: number;
+  status: string;
+  supporting_excerpts: string[];
+  missing_elements: string[];
+  opportunity: string;
+  impact_prediction?: string;
+}
+
+interface QuestionCoverageResponse {
+  question_id: string;
+  question_text: string;
+  is_answered: boolean;
+  importance: string;
+  evidence?: string;
+  suggestion?: string;
+  impact_stat: string;
+}
 
 interface AnalyzeResponse {
   overall_score: number;
@@ -22,6 +49,46 @@ interface AnalyzeResponse {
   }>;
   positives: string[];
   improved_text: string;
+  // New fields
+  category_evidence: Record<string, CategoryEvidenceResponse>;
+  question_coverage: QuestionCoverageResponse[];
+  questions_answered: number;
+  questions_total: number;
+  question_coverage_percent: number;
+  estimated_application_boost?: number;
+}
+
+function transformCategoryEvidence(
+  evidence: Record<string, CategoryEvidenceResponse>
+): Record<AssessmentCategory, CategoryEvidence> {
+  const result: Partial<Record<AssessmentCategory, CategoryEvidence>> = {};
+
+  for (const [key, value] of Object.entries(evidence)) {
+    result[key as AssessmentCategory] = {
+      score: value.score,
+      status: value.status as EvidenceStatus,
+      supportingExcerpts: value.supporting_excerpts,
+      missingElements: value.missing_elements,
+      opportunity: value.opportunity,
+      impactPrediction: value.impact_prediction,
+    };
+  }
+
+  return result as Record<AssessmentCategory, CategoryEvidence>;
+}
+
+function transformQuestionCoverage(
+  questions: QuestionCoverageResponse[]
+): QuestionCoverage[] {
+  return questions.map((q) => ({
+    questionId: q.question_id,
+    questionText: q.question_text,
+    isAnswered: q.is_answered,
+    importance: q.importance as QuestionImportance,
+    evidence: q.evidence,
+    suggestion: q.suggestion,
+    impactStat: q.impact_stat,
+  }));
 }
 
 function transformResponse(response: AnalyzeResponse): AssessmentResult {
@@ -39,6 +106,13 @@ function transformResponse(response: AnalyzeResponse): AssessmentResult {
     })),
     positives: response.positives,
     improvedText: response.improved_text,
+    // New fields
+    categoryEvidence: transformCategoryEvidence(response.category_evidence),
+    questionCoverage: transformQuestionCoverage(response.question_coverage),
+    questionsAnswered: response.questions_answered,
+    questionsTotal: response.questions_total,
+    questionCoveragePercent: response.question_coverage_percent,
+    estimatedApplicationBoost: response.estimated_application_boost,
   };
 }
 
