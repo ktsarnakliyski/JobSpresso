@@ -141,7 +141,4 @@ class VoiceProfileCreate(BaseModel):
     is_default: bool = False
 
 
-class ExtractVoiceRequest(BaseModel):
-    """Input for extracting voice profile from example JDs."""
-    example_jds: list[str]
-    suggested_name: Optional[str] = None
+# ExtractVoiceRequest is defined in app/routers/voice.py to avoid circular imports

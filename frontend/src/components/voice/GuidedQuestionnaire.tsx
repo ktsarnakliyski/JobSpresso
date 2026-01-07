@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { BackButton } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import {
   VoiceExtractionResult,
@@ -107,20 +108,7 @@ export function GuidedQuestionnaire({ onComplete, onBack }: GuidedQuestionnaireP
   return (
     <div className="space-y-6">
       <div>
-        <button
-          onClick={handleBack}
-          className="text-espresso-600 hover:text-espresso-800 text-sm flex items-center gap-1 mb-4"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          {currentIndex === 0 ? 'Back' : 'Previous'}
-        </button>
+        <BackButton onClick={handleBack} label={currentIndex === 0 ? 'Back' : 'Previous'} />
 
         {/* Progress bar */}
         <div className="h-1 bg-espresso-100 rounded-full overflow-hidden mb-6">

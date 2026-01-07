@@ -13,7 +13,6 @@ from app.models.voice_profile import (
     ToneStyle,
     AddressStyle,
     SentenceStyle,
-    ExtractVoiceRequest,
 )
 
 __all__ = [
@@ -27,5 +26,4 @@ __all__ = [
     "ToneStyle",
     "AddressStyle",
     "SentenceStyle",
-    "ExtractVoiceRequest",
 ]
