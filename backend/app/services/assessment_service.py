@@ -11,7 +11,7 @@ from app.models.assessment import (
     EvidenceStatus,
     QuestionCoverageItem,
 )
-from app.models.voice_profile import VoiceProfile
+from app.models.voice_profile import VoiceProfile, RuleType
 from app.services.scoring import (
     calculate_readability_score,
     calculate_length_score,
@@ -23,17 +23,28 @@ from app.services.claude_service import ClaudeService, AnalyzeRequest
 from app.services.question_analyzer import QuestionCoverageAnalyzer
 
 
-# Replacement suggestions for common bias words
+# Replacement suggestions for bias words (synced with BIAS_WORD_LISTS in scoring.py)
 BIAS_REPLACEMENTS = {
-    "aggressive": "ambitious",
+    # Tech bro culture terms
     "ninja": "expert",
     "rockstar": "top performer",
     "guru": "specialist",
-    "dominant": "leading",
-    "driven": "motivated",
-    "young": "early-career",
+    "wizard": "expert",
+    "superhero": "high performer",
+    "unicorn": "versatile professional",
+    # Discriminatory phrases
+    "culture fit": "values alignment",
     "digital native": "digitally fluent",
+    "native English speaker": "fluent English speaker",
+    # Unrealistic expectations
     "hit the ground running": "quickly onboard",
+    "wear many hats": "take on varied responsibilities",
+    "fast-paced environment": "dynamic environment",
+    "work hard play hard": "balanced work culture",
+    # Ageist terms
+    "young": "early-career",
+    "fresh": "new to the field",
+    "overqualified": "highly experienced",
 }
 
 
@@ -50,9 +61,53 @@ class AssessmentService:
         self.claude_service = ClaudeService(api_key=claude_api_key)
         self.question_analyzer = QuestionCoverageAnalyzer()
 
-    def _calculate_rule_based_scores(self, text: str) -> dict[AssessmentCategory, float]:
-        """Calculate scores using deterministic algorithms."""
-        completeness_score, _ = calculate_completeness_score(text)
+    def _get_excluded_fields_from_profile(
+        self, voice_profile: Optional[VoiceProfile]
+    ) -> set[str]:
+        """
+        Extract field names that should be excluded from completeness checks
+        based on voice profile EXCLUDE rules.
+
+        Returns set of field names like {'salary', 'benefits', 'team_size'}
+        """
+        if not voice_profile:
+            return set()
+
+        excluded: set[str] = set()
+
+        # Map rule targets/keywords to completeness field names
+        target_to_fields = {
+            "salary": ["salary"],
+            "compensation": ["salary"],
+            "pay": ["salary"],
+            "location": ["location"],
+            "remote": ["location"],
+            "benefits": ["benefits"],
+            "perks": ["benefits"],
+            "team": ["team_size"],
+            "team_size": ["team_size"],
+            "requirements": ["requirements_listed"],
+        }
+
+        for rule in voice_profile.rules:
+            if rule.active and rule.rule_type == RuleType.EXCLUDE:
+                # Check by explicit target
+                if rule.target and rule.target.lower() in target_to_fields:
+                    excluded.update(target_to_fields[rule.target.lower()])
+
+                # Also check rule text for keywords
+                rule_lower = rule.text.lower()
+                for keyword, fields in target_to_fields.items():
+                    if keyword in rule_lower:
+                        excluded.update(fields)
+
+        return excluded
+
+    def _calculate_rule_based_scores(
+        self, text: str, excluded_fields: Optional[set[str]] = None
+    ) -> dict[AssessmentCategory, float]:
+        """Calculate scores using deterministic algorithms, respecting excluded fields."""
+        completeness_score, _ = calculate_completeness_score(text, excluded_fields)
 
         return {
             AssessmentCategory.READABILITY: calculate_readability_score(text),
@@ -81,10 +136,13 @@ class AssessmentService:
 
         return issues
 
-    def _detect_completeness_issues(self, text: str) -> list[Issue]:
-        """Detect missing information issues."""
+    def _detect_completeness_issues(
+        self, text: str, excluded_fields: Optional[set[str]] = None
+    ) -> list[Issue]:
+        """Detect missing information issues, respecting excluded fields from voice profile."""
         issues = []
-        _, missing = calculate_completeness_score(text)
+        excluded = excluded_fields or set()
+        _, missing = calculate_completeness_score(text, excluded)
 
         impact_map = {
             "salary": "66% less engagement without salary transparency",
@@ -95,6 +153,10 @@ class AssessmentService:
         }
 
         for field in missing:
+            # Skip fields excluded by voice profile rules
+            if field in excluded:
+                continue
+
             severity = IssueSeverity.CRITICAL if field == "salary" else IssueSeverity.WARNING
             issues.append(Issue(
                 severity=severity,
@@ -104,21 +166,22 @@ class AssessmentService:
                 impact=impact_map.get(field, "Improves candidate decision-making"),
             ))
 
-        # Check for salary mentioned without specifics
-        text_lower = text.lower()
-        has_salary_word = bool(re.search(r'\bsalary\b|\bcompensation\b|\bpay\b', text_lower))
-        has_salary_specifics = bool(re.search(
-            r'\$\d|€\d|£\d|\d+k|\d{2,3},?\d{3}|pay\s+range',
-            text_lower
-        ))
-        if has_salary_word and not has_salary_specifics:
-            issues.append(Issue(
-                severity=IssueSeverity.CRITICAL,
-                category=AssessmentCategory.COMPLETENESS,
-                description="Missing salary range specifics",
-                suggestion="Add specific salary range (e.g., $80,000 - $100,000)",
-                impact="66% less engagement without salary transparency",
+        # Check for salary mentioned without specifics (only if salary not excluded)
+        if "salary" not in excluded:
+            text_lower = text.lower()
+            has_salary_word = bool(re.search(r'\bsalary\b|\bcompensation\b|\bpay\b', text_lower))
+            has_salary_specifics = bool(re.search(
+                r'\$\d|€\d|£\d|\d+k|\d{2,3},?\d{3}|pay\s+range',
+                text_lower
             ))
+            if has_salary_word and not has_salary_specifics:
+                issues.append(Issue(
+                    severity=IssueSeverity.CRITICAL,
+                    category=AssessmentCategory.COMPLETENESS,
+                    description="Missing salary range specifics",
+                    suggestion="Add specific salary range (e.g., $80,000 - $100,000)",
+                    impact="66% less engagement without salary transparency",
+                ))
 
         return issues
 
@@ -138,11 +201,15 @@ class AssessmentService:
 
         return issues
 
-    def _detect_rule_based_issues(self, text: str) -> list[Issue]:
-        """Detect issues using word lists and pattern matching."""
+    def _detect_rule_based_issues(
+        self, text: str, voice_profile: Optional[VoiceProfile] = None
+    ) -> list[Issue]:
+        """Detect issues using word lists and pattern matching, respecting voice profile rules."""
+        excluded_fields = self._get_excluded_fields_from_profile(voice_profile)
+
         issues = []
         issues.extend(self._detect_bias_issues(text))
-        issues.extend(self._detect_completeness_issues(text))
+        issues.extend(self._detect_completeness_issues(text, excluded_fields))
         issues.extend(self._detect_readability_issues(text))
         return issues
 
@@ -245,12 +312,15 @@ class AssessmentService:
         """
         Full analysis combining rule-based and AI assessment.
         """
-        # Rule-based analysis (fast, deterministic)
-        rule_scores = self._calculate_rule_based_scores(jd_text)
-        rule_issues = self._detect_rule_based_issues(jd_text)
+        # Get excluded fields from voice profile rules
+        excluded_fields = self._get_excluded_fields_from_profile(voice_profile)
 
-        # Question coverage analysis (Rufus-inspired)
-        question_coverage_raw = self.question_analyzer.analyze(jd_text)
+        # Rule-based analysis (fast, deterministic) - respects excluded fields
+        rule_scores = self._calculate_rule_based_scores(jd_text, excluded_fields)
+        rule_issues = self._detect_rule_based_issues(jd_text, voice_profile)
+
+        # Question coverage analysis (Rufus-inspired) - respects excluded topics
+        question_coverage_raw = self.question_analyzer.analyze(jd_text, excluded_fields)
         questions_answered = sum(1 for q in question_coverage_raw if q.is_answered)
 
         # Convert to model format

@@ -229,3 +229,94 @@ class TestCandidateQuestions:
                     re.compile(pattern)
                 except re.error as e:
                     pytest.fail(f"Invalid regex pattern in {qid}: {pattern} - {e}")
+
+
+class TestExcludedTopics:
+    """Tests for excluded_topics parameter in analyze() method."""
+
+    def test_no_excluded_topics_returns_all_questions(self, analyzer):
+        """Should return all questions when no topics excluded."""
+        result = analyzer.analyze("Some job description")
+        assert len(result) == len(CANDIDATE_QUESTIONS)
+
+    def test_excluding_salary_removes_compensation_question(self, analyzer):
+        """Should not include compensation question when salary excluded."""
+        jd = "$100,000 salary"  # Would normally be answered
+        result = analyzer.analyze(jd, excluded_topics={"salary"})
+
+        question_ids = [q.question_id for q in result]
+        assert "compensation" not in question_ids
+
+    def test_excluding_location_removes_remote_policy_question(self, analyzer):
+        """Should not include remote_policy question when location excluded."""
+        jd = "Fully remote position"  # Would normally be answered
+        result = analyzer.analyze(jd, excluded_topics={"location"})
+
+        question_ids = [q.question_id for q in result]
+        assert "remote_policy" not in question_ids
+
+    def test_excluding_benefits_removes_benefits_question(self, analyzer):
+        """Should not include benefits question when benefits excluded."""
+        jd = "Health insurance and 401k included"  # Would normally be answered
+        result = analyzer.analyze(jd, excluded_topics={"benefits"})
+
+        question_ids = [q.question_id for q in result]
+        assert "benefits" not in question_ids
+
+    def test_excluding_team_size_removes_team_culture_question(self, analyzer):
+        """Should not include team_culture question when team_size excluded."""
+        jd = "Join a team of 5 engineers"  # Would normally be answered
+        result = analyzer.analyze(jd, excluded_topics={"team_size"})
+
+        question_ids = [q.question_id for q in result]
+        assert "team_culture" not in question_ids
+
+    def test_excluding_requirements_listed_removes_requirements_clarity(self, analyzer):
+        """Should not include requirements_clarity when requirements_listed excluded."""
+        jd = "Must have 5+ years experience"  # Would normally be answered
+        result = analyzer.analyze(jd, excluded_topics={"requirements_listed"})
+
+        question_ids = [q.question_id for q in result]
+        assert "requirements_clarity" not in question_ids
+
+    def test_excluding_multiple_topics(self, analyzer):
+        """Should exclude multiple topics at once."""
+        jd = "$100k salary, fully remote, great benefits"
+        excluded = {"salary", "location", "benefits"}
+        result = analyzer.analyze(jd, excluded_topics=excluded)
+
+        question_ids = [q.question_id for q in result]
+        assert "compensation" not in question_ids
+        assert "remote_policy" not in question_ids
+        assert "benefits" not in question_ids
+        # Other questions should still be present
+        assert "day_to_day" in question_ids
+        assert "growth_opportunities" in question_ids
+
+    def test_empty_excluded_set_same_as_none(self, analyzer):
+        """Empty excluded set should behave same as None."""
+        jd = "Some job description"
+        result1 = analyzer.analyze(jd, excluded_topics=set())
+        result2 = analyzer.analyze(jd, excluded_topics=None)
+
+        assert len(result1) == len(result2)
+        ids1 = {q.question_id for q in result1}
+        ids2 = {q.question_id for q in result2}
+        assert ids1 == ids2
+
+    def test_non_mapped_topics_have_no_effect(self, analyzer):
+        """Excluding topics without question mappings should have no effect."""
+        jd = "Some job description"
+        # These don't map to any questions
+        result = analyzer.analyze(jd, excluded_topics={"unknown_topic", "another_topic"})
+
+        assert len(result) == len(CANDIDATE_QUESTIONS)
+
+    def test_question_count_matches_after_exclusion(self, analyzer):
+        """Question count should decrease by number of excluded mapped topics."""
+        jd = "Test JD"
+        full_result = analyzer.analyze(jd)
+        excluded_result = analyzer.analyze(jd, excluded_topics={"salary", "benefits"})
+
+        # Should have 2 fewer questions (compensation and benefits)
+        assert len(excluded_result) == len(full_result) - 2

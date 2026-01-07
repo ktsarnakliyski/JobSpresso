@@ -103,7 +103,38 @@ IMPORTANT GUIDELINES:
 3. Impact predictions should include research-backed statistics when possible (e.g., salary transparency increases applications by 30%)
 4. Focus on changes that will measurably improve candidate response rates
 5. Be practical - prioritize high-impact, easy-to-implement changes
-6. If no voice profile is provided, set voice_match supporting_excerpts and missing_elements to empty arrays"""
+6. If no voice profile is provided, set voice_match supporting_excerpts and missing_elements to empty arrays
+
+CRITICAL - ISSUE QUALITY RULES (MANDATORY - VIOLATIONS INVALIDATE YOUR RESPONSE):
+
+7. SINGLE-WORD ISSUES ARE ABSOLUTELY PROHIBITED.
+   The "found" field must ALWAYS contain 2+ words.
+
+   INVALID (will be rejected by system):
+   {{"found": "analytical", ...}} ← REJECTED
+   {{"found": "competitive", ...}} ← REJECTED
+   {{"found": "driven", ...}} ← REJECTED
+
+   VALID (multi-word phrases only):
+   {{"found": "rockstar developer", "suggestion": "experienced developer"}}
+   {{"found": "aggressive timeline", "suggestion": "ambitious timeline"}}
+   {{"found": "man-hours required", "suggestion": "person-hours required"}}
+
+8. Words like "analytical", "competitive", "driven", "ambitious", "logic", "independent",
+   "confident", "decisive" are LEGITIMATE professional qualities - NOT bias issues.
+   If the JD has gender language imbalance, mention it in category_evidence.inclusivity.opportunity,
+   NOT as individual issues.
+
+9. Every issue MUST have a SPECIFIC, COPY-PASTE-READY suggestion.
+   BAD: "consider alternatives" ← REJECTED (not actionable)
+   BAD: "Add team size information" ← REJECTED (not replacement text)
+   GOOD: "competitive salary" → "$85K-$105K + equity" (specific replacement)
+
+10. If you cannot provide a concrete replacement phrase, do NOT create an issue.
+
+11. Maximum 5 issues total. Quality over quantity.
+
+12. Issues must be for PHRASES (2+ words) that need replacement."""
 
     GENERATION_PROMPT_TEMPLATE = """Generate a job description based on these inputs.
 
@@ -214,10 +245,15 @@ Provide your response as JSON:
 
         message = await self.client.messages.create(
             model=self.model,
-            max_tokens=4096,
+            max_tokens=4096,  # Reduced from 8192 for faster response
+            temperature=0.3,  # Lower temperature for faster, more deterministic inference
             system=self.SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}],
         )
+
+        # Check for truncation
+        if message.stop_reason == "max_tokens":
+            raise ValueError("Analysis response was truncated. The job description may be too long.")
 
         response_text = self._extract_response_text(message)
         return self._parse_analysis_response(response_text)

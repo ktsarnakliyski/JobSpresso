@@ -176,11 +176,34 @@ CANDIDATE_QUESTIONS = {
 class QuestionCoverageAnalyzer:
     """Analyzes whether a JD answers common candidate questions."""
 
-    def analyze(self, jd_text: str) -> list[QuestionCoverage]:
-        """Check each candidate question against the JD."""
+    # Map question IDs to topics that can be excluded by voice profile rules
+    QUESTION_TO_TOPIC = {
+        "compensation": "salary",
+        "remote_policy": "location",
+        "benefits": "benefits",
+        "team_culture": "team_size",
+        "requirements_clarity": "requirements_listed",
+    }
+
+    def analyze(
+        self, jd_text: str, excluded_topics: Optional[set[str]] = None
+    ) -> list[QuestionCoverage]:
+        """
+        Check each candidate question against the JD.
+
+        Args:
+            jd_text: The job description text to analyze
+            excluded_topics: Topics excluded by voice profile rules (e.g., {'salary', 'benefits'})
+                           Questions for these topics will be skipped
+        """
+        excluded = excluded_topics or set()
         results = []
 
         for qid, qdata in CANDIDATE_QUESTIONS.items():
+            # Skip questions for excluded topics
+            topic = self.QUESTION_TO_TOPIC.get(qid)
+            if topic and topic in excluded:
+                continue
             is_answered = False
             evidence = None
 

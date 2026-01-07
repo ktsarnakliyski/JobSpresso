@@ -3,8 +3,8 @@
 import pytest
 from unittest.mock import AsyncMock, patch
 from app.services.assessment_service import AssessmentService
-from app.models.assessment import AssessmentCategory, IssueSeverity
-from app.models.voice_profile import VoiceProfile, ToneStyle
+from app.models.assessment import AssessmentCategory, Issue, IssueSeverity
+from app.models.voice_profile import VoiceProfile, ToneStyle, ProfileRule, RuleType
 
 
 @pytest.fixture
@@ -75,3 +75,161 @@ def test_merge_scores(assessment_service):
     assert len(merged) == 6
     assert merged[AssessmentCategory.READABILITY] == 80
     assert merged[AssessmentCategory.INCLUSIVITY] == 70
+
+
+# Tests for _get_excluded_fields_from_profile
+class TestGetExcludedFieldsFromProfile:
+    """Tests for voice profile rule interpretation."""
+
+    def test_no_profile_returns_empty_set(self, assessment_service):
+        """Should return empty set when no profile provided."""
+        excluded = assessment_service._get_excluded_fields_from_profile(None)
+        assert excluded == set()
+
+    def test_profile_without_rules_returns_empty_set(self, assessment_service):
+        """Should return empty set when profile has no rules."""
+        profile = VoiceProfile(id="test", name="Test", rules=[])
+        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        assert excluded == set()
+
+    def test_exclude_rule_by_target(self, assessment_service):
+        """Should extract excluded field from explicit rule target."""
+        profile = VoiceProfile(
+            id="test",
+            name="Test",
+            rules=[
+                ProfileRule(
+                    id="1",
+                    text="Never include salary",
+                    rule_type=RuleType.EXCLUDE,
+                    target="salary",
+                    active=True,
+                )
+            ],
+        )
+        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        assert "salary" in excluded
+
+    def test_exclude_rule_by_keyword_in_text(self, assessment_service):
+        """Should extract excluded field from keywords in rule text."""
+        profile = VoiceProfile(
+            id="test",
+            name="Test",
+            rules=[
+                ProfileRule(
+                    id="1",
+                    text="Never include salary information",
+                    rule_type=RuleType.EXCLUDE,
+                    active=True,
+                )
+            ],
+        )
+        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        assert "salary" in excluded
+
+    def test_inactive_rules_ignored(self, assessment_service):
+        """Should ignore inactive rules."""
+        profile = VoiceProfile(
+            id="test",
+            name="Test",
+            rules=[
+                ProfileRule(
+                    id="1",
+                    text="Never include salary",
+                    rule_type=RuleType.EXCLUDE,
+                    target="salary",
+                    active=False,  # Inactive
+                )
+            ],
+        )
+        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        assert "salary" not in excluded
+
+    def test_include_rules_not_excluded(self, assessment_service):
+        """Should only process EXCLUDE rules, not INCLUDE."""
+        profile = VoiceProfile(
+            id="test",
+            name="Test",
+            rules=[
+                ProfileRule(
+                    id="1",
+                    text="Always include salary",
+                    rule_type=RuleType.INCLUDE,
+                    target="salary",
+                    active=True,
+                )
+            ],
+        )
+        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        assert "salary" not in excluded
+
+    def test_multiple_exclude_rules_accumulate(self, assessment_service):
+        """Should accumulate multiple excluded fields."""
+        profile = VoiceProfile(
+            id="test",
+            name="Test",
+            rules=[
+                ProfileRule(
+                    id="1",
+                    text="No salary",
+                    rule_type=RuleType.EXCLUDE,
+                    target="salary",
+                    active=True,
+                ),
+                ProfileRule(
+                    id="2",
+                    text="Skip benefits",
+                    rule_type=RuleType.EXCLUDE,
+                    target="benefits",
+                    active=True,
+                ),
+            ],
+        )
+        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        assert "salary" in excluded
+        assert "benefits" in excluded
+
+    def test_compensation_maps_to_salary(self, assessment_service):
+        """Should map 'compensation' target to 'salary' field."""
+        profile = VoiceProfile(
+            id="test",
+            name="Test",
+            rules=[
+                ProfileRule(
+                    id="1",
+                    text="No compensation info",
+                    rule_type=RuleType.EXCLUDE,
+                    target="compensation",
+                    active=True,
+                )
+            ],
+        )
+        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        assert "salary" in excluded
+
+
+# Tests for voice profile exclusion in rule-based issues
+class TestVoiceProfileExclusionInIssues:
+    """Tests for voice profile rules affecting issue detection."""
+
+    def test_salary_excluded_no_salary_issues(self, assessment_service):
+        """Should not flag missing salary when excluded by voice profile."""
+        jd = "Remote position with great benefits."  # No salary mentioned
+        profile = VoiceProfile(
+            id="test",
+            name="Test",
+            rules=[
+                ProfileRule(
+                    id="1",
+                    text="Never include salary information",
+                    rule_type=RuleType.EXCLUDE,
+                    target="salary",
+                    active=True,
+                )
+            ],
+        )
+        issues = assessment_service._detect_rule_based_issues(jd, profile)
+        salary_issues = [
+            i for i in issues if "salary" in i.description.lower()
+        ]
+        assert len(salary_issues) == 0
