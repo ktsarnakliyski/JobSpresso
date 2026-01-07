@@ -16,12 +16,22 @@ interface QuestionCoverageProps {
   coveragePercent: number;
 }
 
-export function QuestionCoverage({
+const IMPORTANCE_ORDER: QuestionImportance[] = ['high', 'medium', 'low'];
+
+// Shared internal component for question groups content
+interface QuestionGroupsContentProps {
+  questions: QuestionCoverageType[];
+  coveragePercent: number;
+  showProgressBar?: boolean;
+  spacing?: 'sm' | 'md';
+}
+
+function QuestionGroupsContent({
   questions,
-  questionsAnswered,
-  questionsTotal,
   coveragePercent,
-}: QuestionCoverageProps) {
+  showProgressBar = true,
+  spacing = 'md',
+}: QuestionGroupsContentProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<QuestionImportance>>(
     new Set<QuestionImportance>(['high', 'medium'])
   );
@@ -49,42 +59,24 @@ export function QuestionCoverage({
     });
   };
 
-  const importanceOrder: QuestionImportance[] = ['high', 'medium', 'low'];
-
   return (
-    <Card className="overflow-hidden">
-      {/* Header with progress */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h3 className="text-lg font-semibold text-navy-900">
-            Candidate Questions Coverage
-          </h3>
-          <p className="text-sm text-navy-500 mt-0.5">
-            Does your posting answer what candidates want to know?
-          </p>
-        </div>
-        <div className="text-right">
-          <div className="text-2xl font-bold text-navy-900 tabular-nums">
-            {questionsAnswered}/{questionsTotal}
-          </div>
-          <div className="text-sm text-navy-500">({coveragePercent}%)</div>
-        </div>
-      </div>
-
+    <>
       {/* Progress bar */}
-      <div className="h-3 bg-navy-100 rounded-full overflow-hidden mb-6">
-        <div
-          className={cn(
-            'h-full rounded-full transition-all duration-700 ease-out-expo',
-            getProgressBarColor(coveragePercent)
-          )}
-          style={{ width: `${coveragePercent}%` }}
-        />
-      </div>
+      {showProgressBar && (
+        <div className={cn('h-3 bg-navy-100 rounded-full overflow-hidden', spacing === 'sm' ? 'mb-4' : 'mb-6')}>
+          <div
+            className="h-full rounded-full transition-all duration-700 ease-out-expo"
+            style={{
+              width: `${coveragePercent}%`,
+              backgroundColor: getProgressBarColor(coveragePercent).hex,
+            }}
+          />
+        </div>
+      )}
 
       {/* Question groups */}
-      <div className="space-y-4">
-        {importanceOrder.map((importance) => {
+      <div className={cn(spacing === 'sm' ? 'space-y-3' : 'space-y-4')}>
+        {IMPORTANCE_ORDER.map((importance) => {
           const questionsInGroup = groupedQuestions[importance] || [];
           if (questionsInGroup.length === 0) return null;
 
@@ -126,6 +118,58 @@ export function QuestionCoverage({
           );
         })}
       </div>
+    </>
+  );
+}
+
+// Section variant (for use inside CollapsibleSection)
+export function QuestionCoverageSection({
+  questions,
+  coveragePercent,
+}: Pick<QuestionCoverageProps, 'questions' | 'coveragePercent'>) {
+  return (
+    <QuestionGroupsContent
+      questions={questions}
+      coveragePercent={coveragePercent}
+      showProgressBar={true}
+      spacing="sm"
+    />
+  );
+}
+
+// Full component with Card wrapper (for standalone use)
+export function QuestionCoverage({
+  questions,
+  questionsAnswered,
+  questionsTotal,
+  coveragePercent,
+}: QuestionCoverageProps) {
+  return (
+    <Card className="overflow-hidden">
+      {/* Header with progress */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h3 className="text-lg font-semibold text-navy-900">
+            Candidate Questions Coverage
+          </h3>
+          <p className="text-sm text-navy-500 mt-0.5">
+            Does your posting answer what candidates want to know?
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="text-2xl font-bold text-navy-900 tabular-nums">
+            {questionsAnswered}/{questionsTotal}
+          </div>
+          <div className="text-sm text-navy-500">({coveragePercent}%)</div>
+        </div>
+      </div>
+
+      <QuestionGroupsContent
+        questions={questions}
+        coveragePercent={coveragePercent}
+        showProgressBar={true}
+        spacing="md"
+      />
     </Card>
   );
 }

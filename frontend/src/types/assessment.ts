@@ -6,6 +6,8 @@ export type EvidenceStatus = 'good' | 'warning' | 'critical';
 
 export type QuestionImportance = 'high' | 'medium' | 'low';
 
+export type FixabilityGroup = 'quick_win' | 'needs_attention' | 'fyi';
+
 export type AssessmentCategory =
   | 'inclusivity'
   | 'readability'
