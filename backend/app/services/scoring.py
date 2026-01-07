@@ -5,34 +5,38 @@ import textstat
 from typing import Optional
 
 
-# Bias word lists based on research
+# Bias word lists - only genuinely problematic terms
+# Note: We intentionally exclude legitimate professional qualities like
+# "analytical", "competitive", "collaborative" - these are valid job requirements.
+# Research on gender-coded language suggests IMBALANCE matters, not individual words.
+# This list focuses on terms that are genuinely exclusionary or problematic.
 BIAS_WORD_LISTS = {
-    "masculine": [
-        "aggressive", "ambitious", "analytical", "assertive", "autonomous",
-        "competitive", "confident", "decisive", "determined", "dominant",
-        "driven", "fearless", "headstrong", "hierarchical", "hostile",
-        "impulsive", "independent", "individualistic", "lead", "logic",
-        "ninja", "objective", "outspoken", "persistent", "principle",
-        "reckless", "rockstar", "self-confident", "self-reliant", "stubborn",
-        "superior", "unreasonable",
-    ],
-    "feminine": [
-        "agree", "affectionate", "childlike", "collaborative", "committed",
-        "communal", "compassionate", "connected", "cooperative", "dependable",
-        "emotional", "empathetic", "feeling", "flatterable", "gentle",
-        "honest", "interpersonal", "interdependent", "kind", "kinship",
-        "loyal", "modesty", "nurturing", "pleasant", "polite", "quiet",
-        "responsive", "submissive", "supportive", "sympathetic", "tender",
-        "together", "trust", "understanding", "warm", "yielding",
-    ],
     "problematic": [
-        "ninja", "rockstar", "guru", "wizard", "hacker", "young",
-        "digital native", "energetic", "mature", "seasoned", "culture fit",
-        "fast-paced", "hit the ground running",
+        # Tech bro culture - exclusionary jargon
+        "ninja",
+        "rockstar",
+        "guru",
+        "wizard",
+        "superhero",
+        "unicorn",
+        # Potentially discriminatory phrases
+        "culture fit",  # Often used to justify discrimination
+        "native English speaker",  # National origin discrimination
+        # Unrealistic expectations
+        "hit the ground running",  # No onboarding = red flag
+        "wear many hats",  # Understaffed = red flag
+        "fast-paced environment",  # Often means chaotic/burnout
+        "work hard play hard",  # Often means overwork culture
     ],
     "ageist": [
-        "young", "digital native", "recent graduate", "fresh", "energetic",
-        "mature", "seasoned", "experienced professional", "overqualified",
+        # Young bias
+        "young",
+        "digital native",  # Age discrimination (kept here only)
+        "recent graduate",
+        "fresh",
+        "early career only",
+        # Old bias
+        "overqualified",
     ],
 }
 
@@ -193,11 +197,16 @@ def check_completeness(text: str) -> dict[str, bool]:
     return checks
 
 
-def calculate_completeness_score(text: str) -> tuple[float, list[str]]:
+def calculate_completeness_score(
+    text: str, excluded_fields: Optional[set[str]] = None
+) -> tuple[float, list[str]]:
     """
     Calculate completeness score and return missing elements.
+    Excluded fields (from voice profile rules) are not penalized and not reported as missing.
+
     Returns (score, list of missing elements).
     """
+    excluded = excluded_fields or set()
     checks = check_completeness(text)
 
     weights = {
@@ -208,7 +217,24 @@ def calculate_completeness_score(text: str) -> tuple[float, list[str]]:
         "team_size": 10,
     }
 
-    score = sum(weights[k] for k, v in checks.items() if v)
-    missing = [k for k, v in checks.items() if not v]
+    # Filter out excluded fields and redistribute weights proportionally
+    active_weights = {k: v for k, v in weights.items() if k not in excluded}
+
+    if active_weights:
+        # Scale weights so they still sum to 100
+        total_active_weight = sum(active_weights.values())
+        scale_factor = 100 / total_active_weight
+
+        score = sum(
+            active_weights[k] * scale_factor
+            for k, v in checks.items()
+            if v and k not in excluded
+        )
+    else:
+        # All fields excluded - default to perfect score
+        score = 100
+
+    # Only report missing fields that aren't excluded
+    missing = [k for k, v in checks.items() if not v and k not in excluded]
 
     return score, missing
