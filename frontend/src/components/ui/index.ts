@@ -10,3 +10,5 @@ export { LoadingSpinner } from './LoadingSpinner';
 export { ErrorCard } from './ErrorCard';
 export { CopyButton } from './CopyButton';
 export { BackButton } from './BackButton';
+export { Modal } from './Modal';
+export { ConfirmDialog } from './ConfirmDialog';

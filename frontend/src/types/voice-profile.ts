@@ -144,6 +144,31 @@ export const FORMALITY_LABELS: Record<number, string> = {
 };
 
 /**
+ * Maps rule targets and keywords to form field names.
+ * Used for validation to check if profile rules reference missing data.
+ */
+export const RULE_TARGET_FIELD_MAP: Record<string, { field: string; label: string }> = {
+  // Salary-related
+  salary: { field: 'salaryRange', label: 'Salary Range' },
+  compensation: { field: 'salaryRange', label: 'Salary Range' },
+  pay: { field: 'salaryRange', label: 'Salary Range' },
+  // Benefits-related
+  benefits: { field: 'benefits', label: 'Benefits' },
+  perks: { field: 'benefits', label: 'Benefits' },
+  // Team/company-related
+  team: { field: 'teamSize', label: 'Team Size' },
+  team_size: { field: 'teamSize', label: 'Team Size' },
+  // Location-related
+  location: { field: 'location', label: 'Location' },
+  remote: { field: 'location', label: 'Location' },
+  office: { field: 'location', label: 'Location' },
+  // Company culture
+  culture: { field: 'companyDescription', label: 'Company Description' },
+  company: { field: 'companyDescription', label: 'Company Description' },
+  mission: { field: 'companyDescription', label: 'Company Description' },
+};
+
+/**
  * Create default structure preferences
  */
 export function createDefaultStructurePreferences(): StructurePreferences {
