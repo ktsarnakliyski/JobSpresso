@@ -4,6 +4,26 @@ export type ToneStyle = 'formal' | 'professional' | 'friendly' | 'casual' | 'sta
 export type AddressStyle = 'direct_you' | 'third_person' | 'we_looking';
 export type SentenceStyle = 'short_punchy' | 'balanced' | 'detailed';
 export type CreationMethod = 'examples' | 'guided' | 'manual';
+export type RuleType = 'exclude' | 'include' | 'format' | 'order' | 'limit' | 'custom';
+
+export interface ProfileRule {
+  id: string;
+  text: string; // Natural language rule: "Never include salary"
+  ruleType: RuleType;
+  target?: string; // What it applies to: "salary", "requirements"
+  value?: string; // Additional value: "bullets", "5"
+  source: 'manual' | 'ai_suggested' | 'extracted';
+  active: boolean;
+}
+
+export interface SuggestedRule {
+  text: string;
+  ruleType: RuleType;
+  target?: string;
+  value?: string;
+  confidence: number;
+  evidence: string;
+}
 
 export interface StructurePreferences {
   leadWithBenefits: boolean;
@@ -38,6 +58,10 @@ export interface VoiceProfile {
   // Source tracking (new)
   sourceExamples: string[];
   createdVia: CreationMethod;
+
+  // Dynamic rules (new)
+  rules: ProfileRule[];
+  formatGuidance?: string;
 
   // Metadata
   exampleJd?: string; // legacy
@@ -79,6 +103,8 @@ export interface VoiceExtractionResult {
     values: string[];
     personality: string;
   };
+  suggestedRules: SuggestedRule[];
+  formatGuidance?: string;
   summary: string;
 }
 
@@ -132,7 +158,7 @@ export function createDefaultStructurePreferences(): StructurePreferences {
  * Create a default voice profile (for migration/initialization)
  */
 export function createDefaultVoiceProfile(partial: Partial<VoiceProfile> = {}): VoiceProfile {
-  return {
+  const defaults: VoiceProfile = {
     id: '',
     name: '',
     toneFormality: 3,
@@ -147,7 +173,14 @@ export function createDefaultVoiceProfile(partial: Partial<VoiceProfile> = {}): 
     brandValues: [],
     sourceExamples: [],
     createdVia: 'manual',
+    rules: [],
     isDefault: false,
+  };
+
+  return {
+    ...defaults,
     ...partial,
+    // Ensure arrays are never undefined after spread
+    rules: partial.rules ?? defaults.rules,
   };
 }

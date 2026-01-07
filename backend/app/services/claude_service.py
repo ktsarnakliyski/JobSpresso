@@ -133,7 +133,7 @@ Provide your response as JSON:
 
     def __init__(self, api_key: str):
         self.client = AsyncAnthropic(api_key=api_key)
-        self.model = "claude-sonnet-4-20250514"
+        self.model = "claude-sonnet-4-5-20250929"
 
     def _build_analysis_prompt(
         self, jd_text: str, voice_profile: Optional[VoiceProfile] = None
@@ -263,10 +263,28 @@ Extract the voice profile as JSON with this structure:
         "values": ["<value1>", "<value2>", ...],
         "personality": "<brief description of brand personality>"
     }},
+    "suggested_rules": [
+        {{
+            "text": "<natural language rule like 'Never include salary information'>",
+            "rule_type": "exclude" | "include" | "format" | "order" | "limit" | "custom",
+            "target": "<what it applies to, e.g., 'salary', 'requirements'>",
+            "value": "<additional value if applicable, e.g., '5' for max items>",
+            "confidence": <0.0-1.0>,
+            "evidence": "<brief explanation like 'Observed in 0/3 examples'>"
+        }}
+    ],
+    "format_guidance": "<optional: describe the consistent structure pattern if one exists>",
     "summary": "<2-3 sentence summary of this voice>"
 }}
 
-Focus on patterns that appear consistently across the examples. Be specific."""
+When analyzing for suggested_rules, look for:
+- Sections consistently missing (e.g., salary never mentioned → suggest "Never include salary information")
+- Format patterns (e.g., requirements always as bullets → suggest "Use bullet points for requirements")
+- Section order patterns (e.g., benefits always first → suggest "Lead with benefits section")
+- Length limits (e.g., requirements always 5-7 items → suggest "Maximum 7 requirement bullet points")
+- Content that's always included (e.g., remote policy always mentioned → suggest "Always include remote work policy")
+
+Focus on patterns that appear consistently across ALL examples. Be specific."""
 
     def _build_voice_extraction_prompt(self, example_jds: list[str]) -> str:
         """Build prompt for voice extraction."""
@@ -305,10 +323,17 @@ Focus on patterns that appear consistently across the examples. Be specific."""
             "sentence_style": "balanced",
             "structure_analysis": {
                 "leads_with_benefits": False,
-                "typical_section_order": ["intro", "responsibilities", "requirements", "benefits"],
+                "typical_section_order": [
+                    "intro",
+                    "responsibilities",
+                    "requirements",
+                    "benefits",
+                ],
                 "includes_salary": False,
             },
             "vocabulary": {"commonly_used": [], "notably_avoided": []},
             "brand_signals": {"values": [], "personality": ""},
+            "suggested_rules": [],
+            "format_guidance": None,
             "summary": "Could not extract voice profile.",
         }

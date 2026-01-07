@@ -6,7 +6,10 @@ from app.models.voice_profile import (
     ToneStyle,
     AddressStyle,
     SentenceStyle,
+    RuleType,
     StructurePreferences,
+    ProfileRule,
+    SuggestedRule,
 )
 
 
@@ -123,3 +126,136 @@ def test_voice_profile_backward_compatibility():
     assert profile.tone_description == "Professional"  # default
     assert profile.brand_values == []
     assert profile.created_via == "manual"
+
+
+# --- ProfileRule and SuggestedRule Tests ---
+
+
+def test_profile_rule_creation():
+    """Can create a ProfileRule with all fields."""
+    rule = ProfileRule(
+        id="rule-123",
+        text="Never include salary information",
+        rule_type="exclude",
+        target="salary",
+        source="manual",
+        active=True,
+    )
+    assert rule.text == "Never include salary information"
+    assert rule.rule_type == "exclude"
+    assert rule.target == "salary"
+    assert rule.active is True
+
+
+def test_profile_rule_defaults():
+    """ProfileRule has sensible defaults."""
+    rule = ProfileRule(
+        id="rule-456",
+        text="Custom rule",
+    )
+    assert rule.rule_type == "custom"
+    assert rule.target is None
+    assert rule.value is None
+    assert rule.source == "manual"
+    assert rule.active is True
+
+
+def test_profile_rule_types():
+    """ProfileRule supports all rule types."""
+    rule_types = ["exclude", "include", "format", "order", "limit", "custom"]
+    for rt in rule_types:
+        rule = ProfileRule(
+            id=f"rule-{rt}",
+            text=f"Test {rt} rule",
+            rule_type=rt,
+        )
+        assert rule.rule_type == rt
+
+
+def test_suggested_rule_creation():
+    """Can create a SuggestedRule with nested ProfileRule."""
+    suggested = SuggestedRule(
+        text="None of your examples include salary",
+        rule=ProfileRule(
+            id="suggested-1",
+            text="Never include salary information",
+            rule_type="exclude",
+            target="salary",
+        ),
+        confidence=0.95,
+        evidence="Observed in 0/3 examples",
+    )
+    assert suggested.confidence == 0.95
+    assert suggested.evidence == "Observed in 0/3 examples"
+    assert suggested.rule.rule_type == "exclude"
+
+
+def test_voice_profile_with_rules():
+    """VoiceProfile can have rules attached."""
+    profile = VoiceProfile(
+        id="profile-with-rules",
+        name="TechCorp",
+        tone=ToneStyle.PROFESSIONAL,
+        rules=[
+            ProfileRule(
+                id="r1",
+                text="Never include salary",
+                rule_type="exclude",
+                target="salary",
+            ),
+            ProfileRule(
+                id="r2",
+                text="Max 7 requirements",
+                rule_type="limit",
+                target="requirements",
+                value="7",
+            ),
+        ],
+        format_guidance="Start with culture, then requirements.",
+    )
+    assert len(profile.rules) == 2
+    assert profile.rules[0].rule_type == "exclude"
+    assert profile.rules[1].value == "7"
+    assert profile.format_guidance is not None
+
+
+def test_voice_profile_rules_default():
+    """VoiceProfile defaults to empty rules list."""
+    profile = VoiceProfile(
+        id="no-rules",
+        name="Simple",
+        tone=ToneStyle.PROFESSIONAL,
+    )
+    assert profile.rules == []
+    assert profile.format_guidance is None
+
+
+def test_to_prompt_context_includes_rules():
+    """to_prompt_context() includes active rules."""
+    profile = VoiceProfile(
+        id="rules-profile",
+        name="Client X",
+        tone=ToneStyle.PROFESSIONAL,
+        rules=[
+            ProfileRule(
+                id="r1",
+                text="Never include salary information",
+                rule_type="exclude",
+                active=True,
+            ),
+            ProfileRule(
+                id="r2",
+                text="Disabled rule",
+                rule_type="custom",
+                active=False,
+            ),
+        ],
+        format_guidance="Start with team culture.",
+    )
+    prompt = profile.to_prompt_context()
+
+    assert "RULES (MUST FOLLOW)" in prompt
+    assert "Never include salary information" in prompt
+    assert "Disabled rule" not in prompt
+    assert "FORMAT GUIDANCE" in prompt
+    assert "Start with team culture" in prompt

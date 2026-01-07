@@ -1,11 +1,14 @@
 # backend/app/routers/voice.py
 
+import logging
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
 from app.config import get_settings
 from app.services.claude_service import ClaudeService
+
+logger = logging.getLogger(__name__)
 
 
 router = APIRouter(prefix="/api/voice", tags=["voice"])
@@ -37,6 +40,21 @@ class BrandSignals(BaseModel):
     personality: str = ""
 
 
+class SuggestedRuleResponse(BaseModel):
+    """API response model for AI-suggested rules (flat structure).
+
+    This is the flattened version sent to frontend. The internal model
+    SuggestedRule (in models/voice_profile.py) has nested ProfileRule.
+    Frontend converts these flat suggestions to ProfileRule when accepting.
+    """
+    text: str  # Natural language rule
+    rule_type: str = "custom"  # "exclude" | "include" | "format" | "order" | "limit" | "custom"
+    target: Optional[str] = None
+    value: Optional[str] = None
+    confidence: float = 0.8
+    evidence: str = ""
+
+
 class ExtractVoiceResponse(BaseModel):
     """Enhanced voice extraction response with Voice DNA fields."""
     # Core tone
@@ -56,6 +74,12 @@ class ExtractVoiceResponse(BaseModel):
 
     # Brand (new)
     brand_signals: BrandSignals
+
+    # AI-suggested rules based on patterns
+    suggested_rules: list[SuggestedRuleResponse] = []
+
+    # Optional format guidance
+    format_guidance: Optional[str] = None
 
     # Summary
     summary: str
@@ -103,20 +127,51 @@ async def extract_voice_profile(
             personality=brand.get("personality", ""),
         )
 
+        # Parse suggested rules
+        raw_rules = result.get("suggested_rules", [])
+        suggested_rules = []
+        for rule in raw_rules:
+            if isinstance(rule, dict) and rule.get("text"):
+                # Safely parse confidence with fallback
+                try:
+                    conf = float(rule.get("confidence", 0.8))
+                except (ValueError, TypeError):
+                    conf = 0.8
+                suggested_rules.append(SuggestedRuleResponse(
+                    text=rule.get("text", ""),
+                    rule_type=rule.get("rule_type", "custom"),
+                    target=rule.get("target"),
+                    value=rule.get("value"),
+                    confidence=min(1.0, max(0.0, conf)),
+                    evidence=rule.get("evidence", ""),
+                ))
+
         return ExtractVoiceResponse(
             tone=result.get("tone", "professional"),
-            tone_formality=result.get("tone_formality", 3),
+            tone_formality=min(5, max(1, result.get("tone_formality", 3))),
             tone_description=result.get("tone_description", "Professional"),
             address_style=result.get("address_style", "direct_you"),
             sentence_style=result.get("sentence_style", "balanced"),
             structure_analysis=structure_analysis,
             vocabulary=vocabulary,
             brand_signals=brand_signals,
+            suggested_rules=suggested_rules,
+            format_guidance=result.get("format_guidance"),
             summary=result.get("summary", ""),
             # Legacy fields
             words_commonly_used=vocabulary.commonly_used,
             words_avoided=vocabulary.notably_avoided,
             structure_preference="mixed",
         )
+    except (ValueError, TypeError, KeyError) as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process extraction result: {str(e)}"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Log unexpected errors but don't expose internal details
+        logger.exception("Unexpected error in voice extraction")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal server error during voice extraction"
+        )

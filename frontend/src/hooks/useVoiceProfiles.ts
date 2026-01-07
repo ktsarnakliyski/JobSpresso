@@ -29,6 +29,9 @@ function migrateProfile(profile: Partial<VoiceProfile>): VoiceProfile {
     brandValues: profile.brandValues ?? [],
     sourceExamples: profile.sourceExamples ?? [],
     createdVia: profile.createdVia ?? 'manual',
+    // Voice DNA Phase 2: Rules and format guidance
+    rules: profile.rules ?? [],
+    formatGuidance: profile.formatGuidance,
   });
 }
 
@@ -64,16 +67,24 @@ export function useVoiceProfiles() {
   // Save to localStorage whenever profiles change
   useEffect(() => {
     if (!isLoaded) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+    } catch (e) {
+      console.error('Failed to save profiles to localStorage:', e);
+    }
   }, [profiles, isLoaded]);
 
   // Save selected profile ID
   useEffect(() => {
     if (!isLoaded) return;
-    if (selectedProfileId) {
-      localStorage.setItem(SELECTED_PROFILE_KEY, selectedProfileId);
-    } else {
-      localStorage.removeItem(SELECTED_PROFILE_KEY);
+    try {
+      if (selectedProfileId) {
+        localStorage.setItem(SELECTED_PROFILE_KEY, selectedProfileId);
+      } else {
+        localStorage.removeItem(SELECTED_PROFILE_KEY);
+      }
+    } catch (e) {
+      console.error('Failed to save selected profile to localStorage:', e);
     }
   }, [selectedProfileId, isLoaded]);
 
