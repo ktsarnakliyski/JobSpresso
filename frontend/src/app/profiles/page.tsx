@@ -3,35 +3,38 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
-import { Card, Button, TextArea, Select, Badge } from '@/components/ui';
+import { Card, Button, Badge } from '@/components/ui';
 import { useVoiceProfiles } from '@/hooks/useVoiceProfiles';
+import { useVoiceExtraction } from '@/hooks/useVoiceExtraction';
+import {
+  PathSelection,
+  ExampleUpload,
+  VoiceDNAPreview,
+  GuidedQuestionnaire,
+  VoiceProfileEditor,
+  CreationPath,
+} from '@/components/voice';
 import {
   VoiceProfile,
-  VoiceProfileFormData,
-  TONE_OPTIONS,
-  ADDRESS_OPTIONS,
-  SENTENCE_OPTIONS,
-  STRUCTURE_OPTIONS,
-  ToneStyle,
-  AddressStyle,
-  SentenceStyle,
+  VoiceExtractionResult,
+  FORMALITY_LABELS,
+  CreationMethod,
 } from '@/types/voice-profile';
 import { cn } from '@/lib/utils';
 
-const initialFormData: VoiceProfileFormData = {
-  name: '',
-  tone: 'professional',
-  addressStyle: 'direct_you',
-  sentenceStyle: 'balanced',
-  wordsToAvoid: '',
-  wordsToPrefer: '',
-  structurePreference: 'mixed',
-};
+type WizardStep =
+  | 'list' // Show profiles list
+  | 'path-select' // Choose creation path
+  | 'examples-upload' // Upload example JDs
+  | 'guided' // Answer questionnaire
+  | 'preview' // Show extracted voice
+  | 'edit'; // Fine-tune profile
 
 export default function ProfilesPage() {
-  const [showForm, setShowForm] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState<VoiceProfileFormData>(initialFormData);
+  const [step, setStep] = useState<WizardStep>('list');
+  const [creationPath, setCreationPath] = useState<CreationPath | null>(null);
+  const [extractedVoice, setExtractedVoice] = useState<VoiceExtractionResult | null>(null);
+  const [sourceExamples, setSourceExamples] = useState<string[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -45,58 +48,89 @@ export default function ProfilesPage() {
     importProfiles,
   } = useVoiceProfiles();
 
-  const handleChange = useCallback(
-    (field: keyof VoiceProfileFormData, value: string) => {
-      setFormData((prev) => ({ ...prev, [field]: value }));
-    },
-    []
-  );
+  const { isExtracting, error: extractError, extractFromExamples, reset: resetExtraction } = useVoiceExtraction();
 
-  const handleSubmit = useCallback(() => {
-    if (!formData.name.trim()) return;
-
-    const profileData: Omit<VoiceProfile, 'id' | 'createdAt'> = {
-      name: formData.name.trim(),
-      tone: formData.tone,
-      addressStyle: formData.addressStyle,
-      sentenceStyle: formData.sentenceStyle,
-      wordsToAvoid: formData.wordsToAvoid
-        .split(',')
-        .map((w) => w.trim())
-        .filter(Boolean),
-      wordsToPrefer: formData.wordsToPrefer
-        .split(',')
-        .map((w) => w.trim())
-        .filter(Boolean),
-      structurePreference: formData.structurePreference,
-      isDefault: false,
-    };
-
-    if (editingId) {
-      updateProfile(editingId, profileData);
+  // Path selection
+  const handlePathSelect = useCallback((path: CreationPath) => {
+    setCreationPath(path);
+    if (path === 'examples') {
+      setStep('examples-upload');
     } else {
-      addProfile(profileData);
+      setStep('guided');
     }
-
-    setFormData(initialFormData);
-    setShowForm(false);
-    setEditingId(null);
-  }, [formData, editingId, addProfile, updateProfile]);
-
-  const handleEdit = useCallback((profile: VoiceProfile) => {
-    setFormData({
-      name: profile.name,
-      tone: profile.tone,
-      addressStyle: profile.addressStyle,
-      sentenceStyle: profile.sentenceStyle,
-      wordsToAvoid: profile.wordsToAvoid.join(', '),
-      wordsToPrefer: profile.wordsToPrefer.join(', '),
-      structurePreference: profile.structurePreference,
-    });
-    setEditingId(profile.id);
-    setShowForm(true);
   }, []);
 
+  // Examples upload
+  const handleExamplesSubmit = useCallback(
+    async (examples: string[]) => {
+      setSourceExamples(examples);
+      const result = await extractFromExamples(examples);
+      if (result) {
+        setExtractedVoice(result);
+        setStep('preview');
+      }
+    },
+    [extractFromExamples]
+  );
+
+  // Guided questionnaire complete
+  const handleGuidedComplete = useCallback((result: VoiceExtractionResult) => {
+    setExtractedVoice(result);
+    setStep('preview');
+  }, []);
+
+  // Accept extracted voice
+  const handleAcceptVoice = useCallback(() => {
+    setStep('edit');
+  }, []);
+
+  // Go to edit mode
+  const handleAdjustVoice = useCallback(() => {
+    setStep('edit');
+  }, []);
+
+  // Save profile
+  const handleSaveProfile = useCallback(
+    (profile: Omit<VoiceProfile, 'id' | 'createdAt'>) => {
+      addProfile(profile);
+      // Reset wizard state
+      setStep('list');
+      setCreationPath(null);
+      setExtractedVoice(null);
+      setSourceExamples([]);
+      resetExtraction();
+    },
+    [addProfile, resetExtraction]
+  );
+
+  // Back navigation
+  const handleBack = useCallback(() => {
+    switch (step) {
+      case 'path-select':
+        setStep('list');
+        setCreationPath(null);
+        break;
+      case 'examples-upload':
+      case 'guided':
+        setStep('path-select');
+        setCreationPath(null);
+        break;
+      case 'preview':
+        if (creationPath === 'examples') {
+          setStep('examples-upload');
+        } else {
+          setStep('guided');
+        }
+        break;
+      case 'edit':
+        setStep('preview');
+        break;
+      default:
+        setStep('list');
+    }
+  }, [step, creationPath]);
+
+  // Profile actions
   const handleDelete = useCallback(
     (id: string) => {
       if (confirm('Are you sure you want to delete this profile?')) {
@@ -112,12 +146,6 @@ export default function ProfilesPage() {
     },
     [updateProfile]
   );
-
-  const handleCancel = useCallback(() => {
-    setFormData(initialFormData);
-    setShowForm(false);
-    setEditingId(null);
-  }, []);
 
   const handleImport = useCallback(() => {
     fileInputRef.current?.click();
@@ -138,12 +166,14 @@ export default function ProfilesPage() {
         }
       };
       reader.readAsText(file);
-
-      // Reset file input
       e.target.value = '';
     },
     [importProfiles]
   );
+
+  const startCreation = useCallback(() => {
+    setStep('path-select');
+  }, []);
 
   if (!isLoaded) {
     return (
@@ -160,13 +190,86 @@ export default function ProfilesPage() {
     );
   }
 
+  // Wizard steps
+  if (step === 'path-select') {
+    return (
+      <div className="space-y-8">
+        <Card className="animate-scale-in">
+          <PathSelection onSelect={handlePathSelect} />
+        </Card>
+      </div>
+    );
+  }
+
+  if (step === 'examples-upload') {
+    return (
+      <div className="space-y-8">
+        <Card className="animate-scale-in">
+          <ExampleUpload
+            onSubmit={handleExamplesSubmit}
+            onBack={handleBack}
+            isLoading={isExtracting}
+          />
+          {extractError && (
+            <p className="mt-4 text-sm text-red-600">{extractError}</p>
+          )}
+        </Card>
+      </div>
+    );
+  }
+
+  if (step === 'guided') {
+    return (
+      <div className="space-y-8">
+        <Card className="animate-scale-in">
+          <GuidedQuestionnaire
+            onComplete={handleGuidedComplete}
+            onBack={handleBack}
+          />
+        </Card>
+      </div>
+    );
+  }
+
+  if (step === 'preview' && extractedVoice) {
+    return (
+      <div className="space-y-8">
+        <div className="animate-scale-in">
+          <VoiceDNAPreview
+            result={extractedVoice}
+            onAccept={handleAcceptVoice}
+            onAdjust={handleAdjustVoice}
+            onBack={handleBack}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (step === 'edit') {
+    return (
+      <div className="space-y-8">
+        <Card className="animate-scale-in">
+          <VoiceProfileEditor
+            initialData={extractedVoice || undefined}
+            createdVia={(creationPath as CreationMethod) || 'manual'}
+            sourceExamples={sourceExamples}
+            onSave={handleSaveProfile}
+            onBack={handleBack}
+          />
+        </Card>
+      </div>
+    );
+  }
+
+  // Default: Profiles list
   return (
     <div className="space-y-8">
       <div className="flex items-start justify-between animate-fade-up">
         <div>
           <h1 className="text-2xl font-bold text-espresso-900 tracking-tight">Voice Profiles</h1>
           <p className="text-espresso-600 mt-2">
-            Create and manage profiles to customize how job descriptions are written.
+            Capture your unique writing style for consistent job descriptions.
           </p>
         </div>
         <div className="flex gap-2">
@@ -193,14 +296,12 @@ export default function ProfilesPage() {
               </Button>
             </>
           )}
-          {!showForm && (
-            <Button onClick={() => setShowForm(true)}>
-              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create Profile
-            </Button>
-          )}
+          <Button onClick={startCreation}>
+            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Create Profile
+          </Button>
         </div>
       </div>
 
@@ -215,111 +316,15 @@ export default function ProfilesPage() {
               </div>
               <p className="text-red-700">{importError}</p>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setImportError(null)}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setImportError(null)}>
               Dismiss
             </Button>
           </div>
         </Card>
       )}
 
-      {/* Create/Edit Form */}
-      {showForm && (
-        <Card className="animate-scale-in">
-          <h2 className="text-lg font-semibold text-espresso-900 mb-5">
-            {editingId ? 'Edit Profile' : 'Create New Profile'}
-          </h2>
-          <div className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-espresso-700 mb-2">
-                Profile Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                className={cn(
-                  'w-full rounded-xl border border-espresso-200 px-4 py-2.5',
-                  'bg-white text-espresso-900',
-                  'transition-all duration-200 ease-out-expo',
-                  'placeholder:text-espresso-400',
-                  'hover:border-espresso-300',
-                  'focus:border-espresso-500 focus:ring-2 focus:ring-espresso-500/15 focus:outline-none'
-                )}
-                placeholder="e.g., Startup Voice, Corporate Formal"
-                value={formData.name}
-                onChange={(e) => handleChange('name', e.target.value)}
-              />
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-5">
-              <Select
-                label="Tone"
-                options={TONE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-                value={formData.tone}
-                onChange={(e) => handleChange('tone', e.target.value as ToneStyle)}
-              />
-
-              <Select
-                label="Address Style"
-                options={ADDRESS_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-                value={formData.addressStyle}
-                onChange={(e) => handleChange('addressStyle', e.target.value as AddressStyle)}
-              />
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-5">
-              <Select
-                label="Sentence Style"
-                options={SENTENCE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-                value={formData.sentenceStyle}
-                onChange={(e) => handleChange('sentenceStyle', e.target.value as SentenceStyle)}
-              />
-
-              <Select
-                label="Structure Preference"
-                options={STRUCTURE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-                value={formData.structurePreference}
-                onChange={(e) =>
-                  handleChange(
-                    'structurePreference',
-                    e.target.value as VoiceProfileFormData['structurePreference']
-                  )
-                }
-              />
-            </div>
-
-            <TextArea
-              label="Words to Avoid"
-              placeholder="Enter words separated by commas (e.g., ninja, rockstar, guru)"
-              value={formData.wordsToAvoid}
-              onChange={(e) => handleChange('wordsToAvoid', e.target.value)}
-              rows={2}
-            />
-
-            <TextArea
-              label="Words to Prefer"
-              placeholder="Enter words separated by commas (e.g., collaborative, innovative)"
-              value={formData.wordsToPrefer}
-              onChange={(e) => handleChange('wordsToPrefer', e.target.value)}
-              rows={2}
-            />
-
-            <div className="flex gap-3 pt-2">
-              <Button onClick={handleSubmit} disabled={!formData.name.trim()}>
-                {editingId ? 'Update Profile' : 'Create Profile'}
-              </Button>
-              <Button variant="outline" onClick={handleCancel}>
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Profiles List */}
-      {profiles.length === 0 && !showForm ? (
+      {/* Empty state */}
+      {profiles.length === 0 ? (
         <Card className="animate-fade-up [animation-delay:100ms] opacity-0">
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-espresso-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
@@ -338,13 +343,13 @@ export default function ProfilesPage() {
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-espresso-900 mb-2">
-              No Voice Profiles Yet
+              Capture Your Voice
             </h3>
             <p className="text-espresso-600 mb-6 max-w-sm mx-auto">
-              Create your first voice profile to customize how job descriptions are written.
+              Create a voice profile to ensure all your job descriptions sound authentically you.
             </p>
             <div className="flex gap-3 justify-center">
-              <Button onClick={() => setShowForm(true)}>
+              <Button onClick={startCreation}>
                 <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
@@ -359,92 +364,105 @@ export default function ProfilesPage() {
       ) : (
         <div className="space-y-4">
           {profiles.map((profile, index) => (
-            <Card
+            <ProfileCard
               key={profile.id}
-              hover
-              className={cn(
-                'animate-fade-up opacity-0',
-                `[animation-delay:${(index + 1) * 50}ms]`
-              )}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-lg font-semibold text-espresso-900 truncate">
-                      {profile.name}
-                    </h3>
-                    {profile.isDefault && (
-                      <Badge variant="success">Default</Badge>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    <Badge variant="default">
-                      {TONE_OPTIONS.find((o) => o.value === profile.tone)?.label}
-                    </Badge>
-                    <Badge variant="default">
-                      {ADDRESS_OPTIONS.find((o) => o.value === profile.addressStyle)?.label}
-                    </Badge>
-                    <Badge variant="default">
-                      {SENTENCE_OPTIONS.find((o) => o.value === profile.sentenceStyle)?.label}
-                    </Badge>
-                    <Badge variant="default">
-                      {STRUCTURE_OPTIONS.find((o) => o.value === profile.structurePreference)?.label}
-                    </Badge>
-                  </div>
-                  {(profile.wordsToAvoid.length > 0 || profile.wordsToPrefer.length > 0) && (
-                    <div className="text-sm text-espresso-600 space-y-1">
-                      {profile.wordsToAvoid.length > 0 && (
-                        <p>
-                          <span className="font-medium text-espresso-700">Avoid:</span>{' '}
-                          {profile.wordsToAvoid.slice(0, 5).join(', ')}
-                          {profile.wordsToAvoid.length > 5 && (
-                            <span className="text-espresso-500"> +{profile.wordsToAvoid.length - 5} more</span>
-                          )}
-                        </p>
-                      )}
-                      {profile.wordsToPrefer.length > 0 && (
-                        <p>
-                          <span className="font-medium text-espresso-700">Prefer:</span>{' '}
-                          {profile.wordsToPrefer.slice(0, 5).join(', ')}
-                          {profile.wordsToPrefer.length > 5 && (
-                            <span className="text-espresso-500"> +{profile.wordsToPrefer.length - 5} more</span>
-                          )}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-2 ml-4 flex-shrink-0">
-                  {!profile.isDefault && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleSetDefault(profile.id)}
-                    >
-                      Set Default
-                    </Button>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleEdit(profile)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                    onClick={() => handleDelete(profile.id)}
-                  >
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            </Card>
+              profile={profile}
+              index={index}
+              onDelete={handleDelete}
+              onSetDefault={handleSetDefault}
+            />
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+interface ProfileCardProps {
+  profile: VoiceProfile;
+  index: number;
+  onDelete: (id: string) => void;
+  onSetDefault: (id: string) => void;
+}
+
+function ProfileCard({ profile, index, onDelete, onSetDefault }: ProfileCardProps) {
+  return (
+    <Card
+      hover
+      className={cn(
+        'animate-fade-up opacity-0',
+        `[animation-delay:${(index + 1) * 50}ms]`
+      )}
+    >
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="text-lg font-semibold text-espresso-900 truncate">
+              {profile.name}
+            </h3>
+            {profile.isDefault && <Badge variant="success">Default</Badge>}
+            {profile.createdVia === 'examples' && (
+              <Badge variant="info" className="text-xs">From Examples</Badge>
+            )}
+            {profile.createdVia === 'guided' && (
+              <Badge variant="info" className="text-xs">Guided</Badge>
+            )}
+          </div>
+
+          {/* Voice DNA Summary */}
+          <div className="flex flex-wrap gap-2 mb-3">
+            <Badge variant="default">
+              {profile.toneDescription || FORMALITY_LABELS[profile.toneFormality] || 'Professional'}
+            </Badge>
+            {profile.structurePreferences?.leadWithBenefits && (
+              <Badge variant="default">Benefits-first</Badge>
+            )}
+            {profile.brandValues && profile.brandValues.length > 0 && (
+              <Badge variant="default">{profile.brandValues.length} values</Badge>
+            )}
+          </div>
+
+          {/* Vocabulary preview */}
+          {(profile.wordsToAvoid.length > 0 || profile.wordsToPrefer.length > 0) && (
+            <div className="text-sm text-espresso-600 space-y-1">
+              {profile.wordsToAvoid.length > 0 && (
+                <p>
+                  <span className="font-medium text-espresso-700">Avoid:</span>{' '}
+                  {profile.wordsToAvoid.slice(0, 5).join(', ')}
+                  {profile.wordsToAvoid.length > 5 && (
+                    <span className="text-espresso-500"> +{profile.wordsToAvoid.length - 5} more</span>
+                  )}
+                </p>
+              )}
+              {profile.wordsToPrefer.length > 0 && (
+                <p>
+                  <span className="font-medium text-espresso-700">Prefer:</span>{' '}
+                  {profile.wordsToPrefer.slice(0, 5).join(', ')}
+                  {profile.wordsToPrefer.length > 5 && (
+                    <span className="text-espresso-500"> +{profile.wordsToPrefer.length - 5} more</span>
+                  )}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-2 ml-4 flex-shrink-0">
+          {!profile.isDefault && (
+            <Button variant="ghost" size="sm" onClick={() => onSetDefault(profile.id)}>
+              Set Default
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+            onClick={() => onDelete(profile.id)}
+          >
+            Delete
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 }

@@ -39,7 +39,7 @@ export function VoiceProfileEditor({
   const [toneDescription, setToneDescription] = useState(
     initialData?.toneDescription ?? 'Professional'
   );
-  const [tone, setTone] = useState<ToneStyle>(initialData?.tone ?? 'professional');
+  const [tone] = useState<ToneStyle>(initialData?.tone ?? 'professional');
   const [addressStyle, setAddressStyle] = useState<AddressStyle>(
     initialData?.addressStyle ?? 'direct_you'
   );
