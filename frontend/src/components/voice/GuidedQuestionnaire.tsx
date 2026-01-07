@@ -41,7 +41,7 @@ const QUESTIONS: Question[] = [
   },
   {
     id: 'detail',
-    question: 'What matters more in your JDs?',
+    question: 'What matters more in your job postings?',
     options: [
       { value: 'vision', label: 'Inspiring Vision', description: 'Paint the big picture, inspire action' },
       { value: 'balanced', label: 'Balanced Mix', description: 'Vision + clear requirements' },
@@ -111,17 +111,17 @@ export function GuidedQuestionnaire({ onComplete, onBack }: GuidedQuestionnaireP
         <BackButton onClick={handleBack} label={currentIndex === 0 ? 'Back' : 'Previous'} />
 
         {/* Progress bar */}
-        <div className="h-1 bg-espresso-100 rounded-full overflow-hidden mb-6">
+        <div className="h-1 bg-navy-100 rounded-full overflow-hidden mb-6">
           <div
-            className="h-full bg-espresso-500 transition-all duration-300"
+            className="h-full bg-navy-500 transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
 
-        <p className="text-sm text-espresso-500 mb-2">
+        <p className="text-sm text-navy-500 mb-2">
           Question {currentIndex + 1} of {QUESTIONS.length}
         </p>
-        <h2 className="text-xl font-semibold text-espresso-900">{currentQuestion.question}</h2>
+        <h2 className="text-xl font-semibold text-navy-900">{currentQuestion.question}</h2>
       </div>
 
       <div className="space-y-3">
@@ -132,13 +132,13 @@ export function GuidedQuestionnaire({ onComplete, onBack }: GuidedQuestionnaireP
             className={cn(
               'w-full p-4 rounded-xl border-2 text-left transition-all duration-200',
               answers[currentQuestion.id] === option.value
-                ? 'border-espresso-500 bg-espresso-50'
-                : 'border-espresso-200 hover:border-espresso-300 hover:bg-espresso-50/50'
+                ? 'border-navy-500 bg-navy-50'
+                : 'border-navy-200 hover:border-navy-300 hover:bg-navy-50/50'
             )}
           >
-            <p className="font-medium text-espresso-900">{option.label}</p>
+            <p className="font-medium text-navy-900">{option.label}</p>
             {option.description && (
-              <p className="text-sm text-espresso-500 mt-1">{option.description}</p>
+              <p className="text-sm text-navy-500 mt-1">{option.description}</p>
             )}
           </button>
         ))}

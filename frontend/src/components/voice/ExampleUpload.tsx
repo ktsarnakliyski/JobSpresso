@@ -37,8 +37,8 @@ export function ExampleUpload({ onSubmit, onBack, isLoading }: ExampleUploadProp
     <div className="space-y-6">
       <div>
         <BackButton onClick={onBack} />
-        <h2 className="text-xl font-semibold text-espresso-900">Paste Your Example JDs</h2>
-        <p className="text-espresso-600 mt-2">
+        <h2 className="text-xl font-semibold text-navy-900">Paste Your Examples</h2>
+        <p className="text-navy-600 mt-2">
           Add 1-3 job descriptions you&apos;ve written. More examples = better accuracy.
         </p>
       </div>
@@ -47,7 +47,7 @@ export function ExampleUpload({ onSubmit, onBack, isLoading }: ExampleUploadProp
         {examples.map((example, index) => (
           <div key={index} className="relative">
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-espresso-700">
+              <label className="text-sm font-medium text-navy-700">
                 Example {index + 1} {index === 0 && <span className="text-red-500">*</span>}
               </label>
               {example.trim().length > 0 && (
@@ -75,7 +75,7 @@ export function ExampleUpload({ onSubmit, onBack, isLoading }: ExampleUploadProp
       </div>
 
       <div className="flex items-center justify-between pt-4">
-        <p className="text-sm text-espresso-500">{filledCount} of 3 examples provided</p>
+        <p className="text-sm text-navy-500">{filledCount} of 3 examples provided</p>
         <div className="flex gap-3">
           <Button variant="outline" onClick={onBack} disabled={isLoading}>
             Cancel

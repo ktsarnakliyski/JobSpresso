@@ -119,14 +119,14 @@ export function VoiceProfileEditor({
     <div className="space-y-6">
       <div>
         <BackButton onClick={onBack} />
-        <h2 className="text-xl font-semibold text-espresso-900">Fine-Tune Your Voice Profile</h2>
-        <p className="text-espresso-600 mt-2">Adjust any settings to match your exact preferences.</p>
+        <h2 className="text-xl font-semibold text-navy-900">Fine-Tune Your Voice Profile</h2>
+        <p className="text-navy-600 mt-2">Adjust any settings to match your exact preferences.</p>
       </div>
 
       <Card className="space-y-6">
         {/* Profile Name */}
         <div>
-          <label className="block text-sm font-medium text-espresso-700 mb-2">
+          <label className="block text-sm font-medium text-navy-700 mb-2">
             Profile Name <span className="text-red-500">*</span>
           </label>
           <input
@@ -135,19 +135,19 @@ export function VoiceProfileEditor({
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g., TechCorp Engineering, Startup Voice"
             className={cn(
-              'w-full rounded-xl border border-espresso-200 px-4 py-2.5',
-              'bg-white text-espresso-900',
-              'focus:border-espresso-500 focus:ring-2 focus:ring-espresso-500/15 focus:outline-none'
+              'w-full rounded-xl border border-navy-200 px-4 py-2.5',
+              'bg-white text-navy-900',
+              'focus:border-navy-500 focus:ring-2 focus:ring-navy-500/15 focus:outline-none'
             )}
           />
         </div>
 
         {/* Tone Section */}
         <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-espresso-800 uppercase tracking-wide">Tone</h3>
+          <h3 className="text-sm font-semibold text-navy-800 uppercase tracking-wide">Tone</h3>
 
           <div>
-            <label className="block text-sm font-medium text-espresso-700 mb-3">
+            <label className="block text-sm font-medium text-navy-700 mb-3">
               Formality: {FORMALITY_LABELS[toneFormality]}
             </label>
             <input
@@ -156,16 +156,16 @@ export function VoiceProfileEditor({
               max={5}
               value={toneFormality}
               onChange={(e) => setToneFormality(Number(e.target.value))}
-              className="w-full accent-espresso-600"
+              className="w-full accent-navy-600"
             />
-            <div className="flex justify-between text-xs text-espresso-400 mt-1">
+            <div className="flex justify-between text-xs text-navy-400 mt-1">
               <span>Formal</span>
               <span>Casual</span>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-espresso-700 mb-2">
+            <label className="block text-sm font-medium text-navy-700 mb-2">
               Tone Description
             </label>
             <input
@@ -174,9 +174,9 @@ export function VoiceProfileEditor({
               onChange={(e) => setToneDescription(e.target.value)}
               placeholder="e.g., Professional but warm"
               className={cn(
-                'w-full rounded-xl border border-espresso-200 px-4 py-2.5',
-                'bg-white text-espresso-900',
-                'focus:border-espresso-500 focus:ring-2 focus:ring-espresso-500/15 focus:outline-none'
+                'w-full rounded-xl border border-navy-200 px-4 py-2.5',
+                'bg-white text-navy-900',
+                'focus:border-navy-500 focus:ring-2 focus:ring-navy-500/15 focus:outline-none'
               )}
             />
           </div>
@@ -184,7 +184,7 @@ export function VoiceProfileEditor({
 
         {/* Style Section */}
         <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-espresso-800 uppercase tracking-wide">Style</h3>
+          <h3 className="text-sm font-semibold text-navy-800 uppercase tracking-wide">Style</h3>
 
           <div className="grid md:grid-cols-2 gap-4">
             <Select
@@ -204,7 +204,7 @@ export function VoiceProfileEditor({
 
         {/* Structure Section */}
         <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-espresso-800 uppercase tracking-wide">
+          <h3 className="text-sm font-semibold text-navy-800 uppercase tracking-wide">
             Structure
           </h3>
 
@@ -214,25 +214,25 @@ export function VoiceProfileEditor({
                 type="checkbox"
                 checked={leadWithBenefits}
                 onChange={(e) => setLeadWithBenefits(e.target.checked)}
-                className="w-4 h-4 rounded border-espresso-300 text-espresso-600 focus:ring-espresso-500"
+                className="w-4 h-4 rounded border-navy-300 text-navy-600 focus:ring-navy-500"
               />
-              <span className="text-espresso-700">Lead with benefits and impact</span>
+              <span className="text-navy-700">Lead with benefits and impact</span>
             </label>
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={includeSalary}
                 onChange={(e) => setIncludeSalary(e.target.checked)}
-                className="w-4 h-4 rounded border-espresso-300 text-espresso-600 focus:ring-espresso-500"
+                className="w-4 h-4 rounded border-navy-300 text-navy-600 focus:ring-navy-500"
               />
-              <span className="text-espresso-700">Include salary prominently</span>
+              <span className="text-navy-700">Include salary prominently</span>
             </label>
           </div>
         </div>
 
         {/* Vocabulary Section */}
         <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-espresso-800 uppercase tracking-wide">
+          <h3 className="text-sm font-semibold text-navy-800 uppercase tracking-wide">
             Vocabulary
           </h3>
 

@@ -56,23 +56,23 @@ export function QuestionCoverage({
       {/* Header with progress */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="text-lg font-semibold text-espresso-900">
+          <h3 className="text-lg font-semibold text-navy-900">
             Candidate Questions Coverage
           </h3>
-          <p className="text-sm text-espresso-500 mt-0.5">
-            Does your JD answer what candidates want to know?
+          <p className="text-sm text-navy-500 mt-0.5">
+            Does your posting answer what candidates want to know?
           </p>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-bold text-espresso-900 tabular-nums">
+          <div className="text-2xl font-bold text-navy-900 tabular-nums">
             {questionsAnswered}/{questionsTotal}
           </div>
-          <div className="text-sm text-espresso-500">({coveragePercent}%)</div>
+          <div className="text-sm text-navy-500">({coveragePercent}%)</div>
         </div>
       </div>
 
       {/* Progress bar */}
-      <div className="h-3 bg-espresso-100 rounded-full overflow-hidden mb-6">
+      <div className="h-3 bg-navy-100 rounded-full overflow-hidden mb-6">
         <div
           className={cn(
             'h-full rounded-full transition-all duration-700 ease-out-expo',
@@ -93,13 +93,13 @@ export function QuestionCoverage({
           const answeredInGroup = questionsInGroup.filter((q) => q.isAnswered).length;
 
           return (
-            <div key={importance} className="border border-espresso-200/60 rounded-xl overflow-hidden">
+            <div key={importance} className="border border-navy-200/60 rounded-xl overflow-hidden">
               {/* Group header */}
               <button
                 onClick={() => toggleGroup(importance)}
                 className={cn(
                   'w-full flex items-center justify-between px-4 py-3',
-                  'hover:bg-espresso-50/50 transition-colors',
+                  'hover:bg-navy-50/50 transition-colors',
                   config.bgColor
                 )}
               >
@@ -107,16 +107,16 @@ export function QuestionCoverage({
                   <span className={cn('text-sm font-semibold', config.color)}>
                     {config.label}
                   </span>
-                  <span className="text-sm text-espresso-500">
+                  <span className="text-sm text-navy-500">
                     {answeredInGroup}/{questionsInGroup.length} answered
                   </span>
                 </div>
-                <ChevronDownIcon isExpanded={isExpanded} className="text-espresso-400" />
+                <ChevronDownIcon isExpanded={isExpanded} className="text-navy-400" />
               </button>
 
               {/* Questions list */}
               {isExpanded && (
-                <div className="divide-y divide-espresso-100">
+                <div className="divide-y divide-navy-100">
                   {questionsInGroup.map((question) => (
                     <QuestionItem key={question.questionId} question={question} />
                   ))}
@@ -148,13 +148,13 @@ function QuestionItem({ question }: QuestionItemProps) {
         <div
           className={cn(
             'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
-            question.isAnswered ? 'bg-emerald-100' : 'bg-espresso-100'
+            question.isAnswered ? 'bg-emerald-100' : 'bg-navy-100'
           )}
         >
           {question.isAnswered ? (
             <CheckIcon className="w-4 h-4 text-emerald-600" />
           ) : (
-            <QuestionIcon className="w-4 h-4 text-espresso-400" />
+            <QuestionIcon className="w-4 h-4 text-navy-400" />
           )}
         </div>
 
@@ -163,7 +163,7 @@ function QuestionItem({ question }: QuestionItemProps) {
           <p
             className={cn(
               'text-sm font-medium',
-              question.isAnswered ? 'text-espresso-900' : 'text-espresso-600'
+              question.isAnswered ? 'text-navy-900' : 'text-navy-600'
             )}
           >
             {question.questionText}
@@ -171,7 +171,7 @@ function QuestionItem({ question }: QuestionItemProps) {
 
           {/* Impact stat - always show */}
           {question.impactStat && (
-            <p className="text-xs text-espresso-500 mt-1">{question.impactStat}</p>
+            <p className="text-xs text-navy-500 mt-1">{question.impactStat}</p>
           )}
 
           {/* Expandable details */}
@@ -180,7 +180,7 @@ function QuestionItem({ question }: QuestionItemProps) {
               {question.isAnswered && question.evidence && (
                 <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
                   <p className="text-xs font-medium text-emerald-700 mb-1">
-                    Found in your JD:
+                    Found in your posting:
                   </p>
                   <p className="text-sm text-emerald-900 italic">
                     &quot;{question.evidence}&quot;
@@ -202,7 +202,7 @@ function QuestionItem({ question }: QuestionItemProps) {
         {hasDetails && (
           <ChevronDownIcon
             isExpanded={isExpanded}
-            className="w-4 h-4 text-espresso-400 flex-shrink-0"
+            className="w-4 h-4 text-navy-400 flex-shrink-0"
           />
         )}
       </div>

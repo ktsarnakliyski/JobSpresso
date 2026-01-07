@@ -24,7 +24,7 @@ const INTERPRETATION_CONFIG: Record<
     strokeColor: '#059669',
     bgColor: 'bg-emerald-50',
     label: 'Excellent',
-    description: 'Your JD is highly optimized',
+    description: 'Your posting is highly optimized',
   },
   good: {
     color: 'text-emerald-500',
@@ -163,7 +163,7 @@ export function CircularScore({
           <span className={cn('font-bold tabular-nums', sizeConfig.fontSize, config.color)}>
             {animatedScore}
           </span>
-          <span className={cn('text-espresso-500', sizeConfig.subSize)}>out of 100</span>
+          <span className={cn('text-navy-500', sizeConfig.subSize)}>out of 100</span>
         </div>
       </div>
 
@@ -178,15 +178,15 @@ export function CircularScore({
           >
             <span className={cn('font-semibold', config.color)}>{config.label}</span>
           </div>
-          <p className="text-sm text-espresso-600">{config.description}</p>
+          <p className="text-sm text-navy-600">{config.description}</p>
         </div>
       )}
 
       {/* Estimated application boost */}
       {estimatedBoost && estimatedBoost > 0 && (
-        <div className="flex items-center gap-2 px-4 py-2 bg-sage/10 rounded-xl border border-sage/20">
+        <div className="flex items-center gap-2 px-4 py-2 bg-teal/10 rounded-xl border border-teal/20">
           <svg
-            className="w-5 h-5 text-sage"
+            className="w-5 h-5 text-teal"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -198,7 +198,7 @@ export function CircularScore({
               d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
             />
           </svg>
-          <span className="text-sm font-medium text-sage">
+          <span className="text-sm font-medium text-teal">
             +{estimatedBoost}% potential application boost
           </span>
         </div>

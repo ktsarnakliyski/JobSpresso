@@ -14,22 +14,22 @@ export function PathSelection({ onSelect }: PathSelectionProps) {
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <h2 className="text-xl font-semibold text-espresso-900">Create Voice Profile</h2>
-        <p className="text-espresso-600 mt-2">Let&apos;s capture your unique writing style</p>
+        <h2 className="text-xl font-semibold text-navy-900">Create Voice Profile</h2>
+        <p className="text-navy-600 mt-2">Let&apos;s capture your unique writing style</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         <button
           onClick={() => onSelect('examples')}
           className={cn(
-            'p-6 rounded-2xl border-2 border-espresso-200 bg-white',
-            'hover:border-espresso-400 hover:shadow-soft-lg',
+            'p-6 rounded-2xl border-2 border-navy-200 bg-white',
+            'hover:border-navy-400 hover:shadow-soft-lg',
             'transition-all duration-200 text-left group'
           )}
         >
-          <div className="w-12 h-12 rounded-xl bg-espresso-100 flex items-center justify-center mb-4 group-hover:bg-espresso-200 transition-colors">
+          <div className="w-12 h-12 rounded-xl bg-navy-100 flex items-center justify-center mb-4 group-hover:bg-navy-200 transition-colors">
             <svg
-              className="w-6 h-6 text-espresso-600"
+              className="w-6 h-6 text-navy-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -42,24 +42,24 @@ export function PathSelection({ onSelect }: PathSelectionProps) {
               />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-espresso-900 mb-2">From Examples</h3>
-          <p className="text-espresso-600 text-sm">
-            Upload 2-3 JDs you&apos;ve written before. We&apos;ll analyze your style automatically.
+          <h3 className="text-lg font-semibold text-navy-900 mb-2">From Examples</h3>
+          <p className="text-navy-600 text-sm">
+            Upload 2-3 job postings you&apos;ve written before. We&apos;ll analyze your style automatically.
           </p>
-          <p className="text-espresso-400 text-xs mt-3">Fastest if you have examples handy</p>
+          <p className="text-navy-400 text-xs mt-3">Fastest if you have examples handy</p>
         </button>
 
         <button
           onClick={() => onSelect('guided')}
           className={cn(
-            'p-6 rounded-2xl border-2 border-espresso-200 bg-white',
-            'hover:border-espresso-400 hover:shadow-soft-lg',
+            'p-6 rounded-2xl border-2 border-navy-200 bg-white',
+            'hover:border-navy-400 hover:shadow-soft-lg',
             'transition-all duration-200 text-left group'
           )}
         >
-          <div className="w-12 h-12 rounded-xl bg-espresso-100 flex items-center justify-center mb-4 group-hover:bg-espresso-200 transition-colors">
+          <div className="w-12 h-12 rounded-xl bg-navy-100 flex items-center justify-center mb-4 group-hover:bg-navy-200 transition-colors">
             <svg
-              className="w-6 h-6 text-espresso-600"
+              className="w-6 h-6 text-navy-600"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -72,11 +72,11 @@ export function PathSelection({ onSelect }: PathSelectionProps) {
               />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-espresso-900 mb-2">Guide Me Through It</h3>
-          <p className="text-espresso-600 text-sm">
+          <h3 className="text-lg font-semibold text-navy-900 mb-2">Guide Me Through It</h3>
+          <p className="text-navy-600 text-sm">
             Answer a few questions about your writing style and preferences.
           </p>
-          <p className="text-espresso-400 text-xs mt-3">Takes about 3 minutes</p>
+          <p className="text-navy-400 text-xs mt-3">Takes about 3 minutes</p>
         </button>
       </div>
     </div>

@@ -18,13 +18,13 @@ export function getInputBaseClasses({
   error?: boolean;
 }) {
   return cn(
-    'w-full rounded-xl border border-espresso-200 px-4',
-    'bg-white text-espresso-900',
+    'w-full rounded-xl border border-navy-200 px-4',
+    'bg-white text-navy-900',
     'transition-all duration-200 ease-out-expo',
-    'placeholder:text-espresso-400',
-    'hover:border-espresso-300',
-    'focus:border-espresso-500 focus:ring-2 focus:ring-espresso-500/15 focus:outline-none',
+    'placeholder:text-navy-400',
+    'hover:border-navy-300',
+    'focus:border-navy-500 focus:ring-2 focus:ring-navy-500/15 focus:outline-none',
     error && 'border-red-400 focus:border-red-500 focus:ring-red-500/15',
-    disabled && 'opacity-60 cursor-not-allowed bg-espresso-50 hover:border-espresso-200'
+    disabled && 'opacity-60 cursor-not-allowed bg-navy-50 hover:border-navy-200'
   );
 }

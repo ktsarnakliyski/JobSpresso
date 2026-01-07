@@ -31,7 +31,7 @@ export function CategoryEvidence({ categoryEvidence }: CategoryEvidenceProps) {
 
   return (
     <Card>
-      <h3 className="text-lg font-semibold text-espresso-900 mb-5">Detailed Breakdown</h3>
+      <h3 className="text-lg font-semibold text-navy-900 mb-5">Detailed Breakdown</h3>
       <div className="space-y-3">
         {sortedCategories.map(([category, evidence]) => (
           <CategoryCard key={category} category={category} evidence={evidence} />
@@ -55,13 +55,13 @@ function CategoryCard({ category, evidence }: CategoryCardProps) {
     <div
       className={cn(
         'border rounded-xl overflow-hidden transition-all duration-200',
-        isExpanded ? 'border-espresso-300 shadow-soft-md' : 'border-espresso-200/60'
+        isExpanded ? 'border-navy-300 shadow-soft-md' : 'border-navy-200/60'
       )}
     >
       {/* Header - always visible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center gap-4 px-4 py-3 hover:bg-espresso-50/50 transition-colors"
+        className="w-full flex items-center gap-4 px-4 py-3 hover:bg-navy-50/50 transition-colors"
       >
         {/* Status icon */}
         <div className={cn('w-7 h-7 rounded-lg flex items-center justify-center', statusConfig.bgColor)}>
@@ -71,14 +71,14 @@ function CategoryCard({ category, evidence }: CategoryCardProps) {
         {/* Category name and score bar */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-sm font-medium text-espresso-900">
+            <span className="text-sm font-medium text-navy-900">
               {CATEGORY_LABELS[category]}
             </span>
             <span className={cn('text-sm font-semibold tabular-nums', statusConfig.color)}>
               {Math.round(evidence.score)}
             </span>
           </div>
-          <div className="h-1.5 bg-espresso-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-navy-100 rounded-full overflow-hidden">
             <div
               className={cn(
                 'h-full rounded-full transition-all duration-500 ease-out-expo',
@@ -90,18 +90,18 @@ function CategoryCard({ category, evidence }: CategoryCardProps) {
         </div>
 
         {/* Expand indicator */}
-        <ChevronDownIcon isExpanded={isExpanded} className="text-espresso-400 flex-shrink-0" />
+        <ChevronDownIcon isExpanded={isExpanded} className="text-navy-400 flex-shrink-0" />
       </button>
 
       {/* Expanded content */}
       {isExpanded && (
-        <div className="px-4 pb-4 pt-2 border-t border-espresso-100 bg-espresso-50/30">
+        <div className="px-4 pb-4 pt-2 border-t border-navy-100 bg-navy-50/30">
           {/* Opportunity - main improvement suggestion */}
-          <div className="mb-4 p-3 bg-white rounded-lg border border-espresso-200/60">
-            <p className="text-xs font-medium text-espresso-500 mb-1">Opportunity</p>
-            <p className="text-sm text-espresso-800">{evidence.opportunity}</p>
+          <div className="mb-4 p-3 bg-white rounded-lg border border-navy-200/60">
+            <p className="text-xs font-medium text-navy-500 mb-1">Opportunity</p>
+            <p className="text-sm text-navy-800">{evidence.opportunity}</p>
             {evidence.impactPrediction && (
-              <p className="text-xs text-sage mt-2 font-medium">{evidence.impactPrediction}</p>
+              <p className="text-xs text-teal mt-2 font-medium">{evidence.impactPrediction}</p>
             )}
           </div>
 
@@ -143,7 +143,7 @@ function CategoryCard({ category, evidence }: CategoryCardProps) {
 
           {/* Handle case where both are empty */}
           {evidence.supportingExcerpts.length === 0 && evidence.missingElements.length === 0 && (
-            <p className="text-sm text-espresso-500 italic">
+            <p className="text-sm text-navy-500 italic">
               No specific evidence available for this category.
             </p>
           )}

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 80" fill="none">
+  <!-- Icon group (scaled down) -->
+  <g transform="translate(5, 5) scale(0.7)">
+    <!-- Outer decorative arc -->
+    <path d="M25 15 C10 30, 10 55, 30 75" stroke="#1e3a5f" stroke-width="4" stroke-linecap="round" fill="none"/>
+
+    <!-- Magnifying glass lens (circle) -->
+    <circle cx="50" cy="45" r="28" stroke="#1e3a5f" stroke-width="5" fill="none"/>
+
+    <!-- Magnifying glass handle -->
+    <path d="M28 67 L12 88" stroke="#1e3a5f" stroke-width="8" stroke-linecap="round"/>
+
+    <!-- Checkmark -->
+    <path d="M36 45 L46 55 L66 32" stroke="#1e3a5f" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+
+    <!-- Small decorative arc on top right -->
+    <path d="M72 25 C82 18, 88 25, 85 35" stroke="#1e3a5f" stroke-width="3" stroke-linecap="round" fill="none"/>
+  </g>
+
+  <!-- JobSpresso text -->
+  <text x="85" y="52" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="32" font-weight="600" fill="#1e3a5f">JobSpresso</text>
+</svg>
