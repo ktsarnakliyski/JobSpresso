@@ -236,28 +236,50 @@ Provide your response as JSON:
         response_text = message.content[0].text
         return self._parse_generation_response(response_text)
 
-    async def extract_voice_profile(self, example_jds: list[str]) -> dict:
-        """Extract voice profile characteristics from example JDs."""
-        prompt = f"""Analyze these example job descriptions and extract the voice/tone characteristics.
+    VOICE_EXTRACTION_PROMPT = """Analyze these job descriptions and extract the writing voice/style.
 
-EXAMPLE JDs:
----
-{chr(10).join(f"Example {i+1}:{chr(10)}{jd}{chr(10)}---" for i, jd in enumerate(example_jds))}
+Example JDs to analyze:
+{examples}
 
-Extract and return as JSON:
+Extract the voice profile as JSON with this structure:
 {{
     "tone": "formal" | "professional" | "friendly" | "casual" | "startup_casual",
+    "tone_formality": <1-5, where 1=very formal, 5=very casual>,
+    "tone_description": "<2-3 word description like 'Professional but warm' or 'Energetic and direct'>",
     "address_style": "direct_you" | "third_person" | "we_looking",
     "sentence_style": "short_punchy" | "balanced" | "detailed",
-    "words_commonly_used": ["<words that appear frequently>"],
-    "words_avoided": ["<words notably absent that are common in JDs>"],
-    "structure_preference": "bullet_heavy" | "mixed" | "paragraph_focused",
-    "summary": "<2-3 sentence description of the voice>"
-}}"""
+    "structure_analysis": {{
+        "leads_with_benefits": <true/false>,
+        "typical_section_order": ["<section1>", "<section2>", ...],
+        "includes_salary": <true/false>
+    }},
+    "vocabulary": {{
+        "commonly_used": ["<word1>", "<word2>", ...],
+        "notably_avoided": ["<word1>", "<word2>", ...]
+    }},
+    "brand_signals": {{
+        "values": ["<value1>", "<value2>", ...],
+        "personality": "<brief description of brand personality>"
+    }},
+    "summary": "<2-3 sentence summary of this voice>"
+}}
+
+Focus on patterns that appear consistently across the examples. Be specific."""
+
+    def _build_voice_extraction_prompt(self, example_jds: list[str]) -> str:
+        """Build prompt for voice extraction."""
+        examples_text = "\n\n---\n\n".join(
+            f"Example {i+1}:\n{jd}" for i, jd in enumerate(example_jds)
+        )
+        return self.VOICE_EXTRACTION_PROMPT.format(examples=examples_text)
+
+    async def extract_voice_profile(self, example_jds: list[str]) -> dict:
+        """Extract voice profile characteristics from example JDs."""
+        prompt = self._build_voice_extraction_prompt(example_jds)
 
         message = await self.client.messages.create(
             model=self.model,
-            max_tokens=2048,
+            max_tokens=2000,
             system=self.SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -265,4 +287,28 @@ Extract and return as JSON:
         if not message.content or not hasattr(message.content[0], 'text'):
             raise ValueError("Unexpected response format from Claude API: empty or invalid content")
         response_text = message.content[0].text
-        return self._parse_analysis_response(response_text)
+
+        # Extract JSON from response
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if json_match:
+            try:
+                return json.loads(json_match.group())
+            except json.JSONDecodeError:
+                pass
+
+        # Fallback defaults
+        return {
+            "tone": "professional",
+            "tone_formality": 3,
+            "tone_description": "Professional",
+            "address_style": "direct_you",
+            "sentence_style": "balanced",
+            "structure_analysis": {
+                "leads_with_benefits": False,
+                "typical_section_order": ["intro", "responsibilities", "requirements", "benefits"],
+                "includes_salary": False,
+            },
+            "vocabulary": {"commonly_used": [], "notably_avoided": []},
+            "brand_signals": {"values": [], "personality": ""},
+            "summary": "Could not extract voice profile.",
+        }
