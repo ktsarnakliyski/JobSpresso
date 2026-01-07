@@ -204,6 +204,7 @@ function buildResultFromAnswers(answers: Record<string, string>): VoiceExtractio
       values: brandValues,
       personality: toneInfo.description,
     },
+    suggestedRules: [],
     summary: `${toneInfo.description} voice that ${answers.structure === 'benefits' ? 'leads with benefits' : 'focuses on the role'}.`,
   };
 }

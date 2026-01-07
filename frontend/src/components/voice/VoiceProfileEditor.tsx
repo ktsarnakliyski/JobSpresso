@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import {
   VoiceProfile,
   VoiceExtractionResult,
+  ProfileRule,
   ADDRESS_OPTIONS,
   SENTENCE_OPTIONS,
   FORMALITY_LABELS,
@@ -16,6 +17,18 @@ import {
   SentenceStyle,
   CreationMethod,
 } from '@/types/voice-profile';
+import { RulesBuilder } from './RulesBuilder';
+
+// Helper to parse comma-separated strings into arrays
+const parseCommaSeparated = (str: string): string[] =>
+  str.split(',').map((w) => w.trim()).filter(Boolean);
+
+// Shared input styling
+const inputClasses = cn(
+  'w-full rounded-xl border border-navy-200 px-4 py-2.5',
+  'bg-white text-navy-900',
+  'focus:border-navy-500 focus:ring-2 focus:ring-navy-500/15 focus:outline-none'
+);
 
 interface VoiceProfileEditorProps {
   initialData?: VoiceExtractionResult;
@@ -61,6 +74,22 @@ export function VoiceProfileEditor({
   const [brandValues, setBrandValues] = useState(
     initialData?.brandSignals?.values?.join(', ') ?? ''
   );
+  // Auto-populate rules from suggested rules (converted to ProfileRule format)
+  const [rules, setRules] = useState<ProfileRule[]>(() => {
+    if (!initialData?.suggestedRules?.length) return [];
+    return initialData.suggestedRules.map((suggested, idx) => ({
+      id: `suggested-${idx}-${Date.now()}`,
+      text: suggested.text,
+      ruleType: suggested.ruleType,
+      target: suggested.target,
+      value: suggested.value,
+      source: 'ai_suggested' as const,
+      active: true,
+    }));
+  });
+  const [formatGuidance, setFormatGuidance] = useState(
+    initialData?.formatGuidance ?? ''
+  );
 
   const handleSave = useCallback(() => {
     if (!name.trim()) return;
@@ -80,20 +109,13 @@ export function VoiceProfileEditor({
         includeSalaryProminently: includeSalary,
       },
       structurePreference: 'mixed',
-      wordsToAvoid: wordsToAvoid
-        .split(',')
-        .map((w) => w.trim())
-        .filter(Boolean),
-      wordsToPrefer: wordsToPrefer
-        .split(',')
-        .map((w) => w.trim())
-        .filter(Boolean),
-      brandValues: brandValues
-        .split(',')
-        .map((w) => w.trim())
-        .filter(Boolean),
+      wordsToAvoid: parseCommaSeparated(wordsToAvoid),
+      wordsToPrefer: parseCommaSeparated(wordsToPrefer),
+      brandValues: parseCommaSeparated(brandValues),
       sourceExamples,
       createdVia,
+      rules,
+      formatGuidance: formatGuidance.trim() || undefined,
       isDefault: false,
     };
 
@@ -112,6 +134,8 @@ export function VoiceProfileEditor({
     brandValues,
     sourceExamples,
     createdVia,
+    rules,
+    formatGuidance,
     onSave,
   ]);
 
@@ -134,11 +158,7 @@ export function VoiceProfileEditor({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g., TechCorp Engineering, Startup Voice"
-            className={cn(
-              'w-full rounded-xl border border-navy-200 px-4 py-2.5',
-              'bg-white text-navy-900',
-              'focus:border-navy-500 focus:ring-2 focus:ring-navy-500/15 focus:outline-none'
-            )}
+            className={inputClasses}
           />
         </div>
 
@@ -148,7 +168,7 @@ export function VoiceProfileEditor({
 
           <div>
             <label className="block text-sm font-medium text-navy-700 mb-3">
-              Formality: {FORMALITY_LABELS[toneFormality]}
+              Formality: {FORMALITY_LABELS[toneFormality] || 'Balanced'}
             </label>
             <input
               type="range"
@@ -173,11 +193,7 @@ export function VoiceProfileEditor({
               value={toneDescription}
               onChange={(e) => setToneDescription(e.target.value)}
               placeholder="e.g., Professional but warm"
-              className={cn(
-                'w-full rounded-xl border border-navy-200 px-4 py-2.5',
-                'bg-white text-navy-900',
-                'focus:border-navy-500 focus:ring-2 focus:ring-navy-500/15 focus:outline-none'
-              )}
+              className={inputClasses}
             />
           </div>
         </div>
@@ -262,6 +278,15 @@ export function VoiceProfileEditor({
             rows={2}
           />
         </div>
+
+        {/* Rules & Constraints */}
+        <RulesBuilder
+          rules={rules}
+          suggestedRules={initialData?.suggestedRules}
+          formatGuidance={formatGuidance}
+          onRulesChange={setRules}
+          onFormatGuidanceChange={setFormatGuidance}
+        />
       </Card>
 
       <div className="flex justify-end gap-3">

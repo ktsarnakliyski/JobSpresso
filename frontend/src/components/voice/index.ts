@@ -5,3 +5,4 @@ export { ExampleUpload } from './ExampleUpload';
 export { VoiceDNAPreview } from './VoiceDNAPreview';
 export { GuidedQuestionnaire } from './GuidedQuestionnaire';
 export { VoiceProfileEditor } from './VoiceProfileEditor';
+export { RulesBuilder } from './RulesBuilder';

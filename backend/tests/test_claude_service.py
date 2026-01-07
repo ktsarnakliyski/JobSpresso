@@ -109,3 +109,27 @@ def test_voice_extraction_prompt_includes_all_examples(claude_service):
     assert "Example 1" in prompt
     assert "Example 2" in prompt
     assert "Example 3" in prompt
+
+
+def test_voice_extraction_prompt_requests_suggested_rules(claude_service):
+    """Test that voice extraction prompt asks for suggested_rules."""
+    prompt = claude_service._build_voice_extraction_prompt(["Sample JD"])
+
+    # Should request suggested_rules in the JSON structure
+    assert "suggested_rules" in prompt
+    assert "rule_type" in prompt
+    assert "confidence" in prompt
+    assert "evidence" in prompt
+
+    # Should describe what patterns to look for
+    assert "exclude" in prompt.lower() or "never" in prompt.lower()
+    assert "format" in prompt.lower()
+    assert "pattern" in prompt.lower()
+
+
+def test_voice_extraction_prompt_requests_format_guidance(claude_service):
+    """Test that voice extraction prompt asks for format_guidance."""
+    prompt = claude_service._build_voice_extraction_prompt(["Sample JD"])
+
+    assert "format_guidance" in prompt
+    assert "structure" in prompt.lower()

@@ -25,11 +25,45 @@ class SentenceStyle(str, Enum):
     DETAILED = "detailed"
 
 
+class RuleType(str, Enum):
+    EXCLUDE = "exclude"
+    INCLUDE = "include"
+    FORMAT = "format"
+    ORDER = "order"
+    LIMIT = "limit"
+    CUSTOM = "custom"
+
+
 class StructurePreferences(BaseModel):
     """Preferences for JD structure and section ordering."""
     lead_with_benefits: bool = False
     section_order: list[str] = ["intro", "responsibilities", "requirements", "benefits"]
     include_salary_prominently: bool = False
+
+
+class ProfileRule(BaseModel):
+    """A rule expressed by user, categorized for UI display."""
+    id: str
+    text: str  # Original user input: "Never include salary"
+    rule_type: RuleType = RuleType.CUSTOM
+    target: Optional[str] = None  # What it applies to: "salary", "requirements", etc.
+    value: Optional[str] = None  # Additional value: "bullets", "5", etc.
+    source: str = "manual"  # "manual" | "ai_suggested" | "extracted"
+    active: bool = True
+
+
+class SuggestedRule(BaseModel):
+    """Rule suggested by AI based on example analysis.
+
+    NOTE: This is the internal model with nested ProfileRule for rich rule data.
+    The API response uses SuggestedRuleResponse (in routers/voice.py) which
+    flattens the structure for frontend consumption. The frontend converts
+    flat suggestions back to ProfileRule format when adding to a profile.
+    """
+    text: str  # "None of your examples include salary"
+    rule: ProfileRule  # The rule to add if accepted
+    confidence: float  # 0.0-1.0, how confident AI is
+    evidence: str  # "Observed in 0/3 examples"
 
 
 class VoiceProfile(BaseModel):
@@ -60,6 +94,10 @@ class VoiceProfile(BaseModel):
     # Source tracking (new)
     source_examples: list[str] = []  # JDs used to create this profile
     created_via: str = "manual"  # "examples" | "guided" | "manual"
+
+    # Dynamic rules (new)
+    rules: list[ProfileRule] = []  # Free-form rules like "Never include salary"
+    format_guidance: Optional[str] = None  # Free-text structure description
 
     # Metadata
     example_jd: Optional[str] = None  # Legacy single example
@@ -115,6 +153,17 @@ class VoiceProfile(BaseModel):
         if self.brand_values:
             parts.append(f"Brand Values to Reflect: {', '.join(self.brand_values)}")
 
+        # Dynamic rules - pass directly to Claude as natural language
+        active_rules = [rule for rule in self.rules if rule.active]
+        if active_rules:
+            parts.append("\nRULES (MUST FOLLOW):")
+            for rule in active_rules:
+                parts.append(f"- {rule.text}")
+
+        # Format guidance - free text description
+        if self.format_guidance:
+            parts.append(f"\nFORMAT GUIDANCE:\n{self.format_guidance}")
+
         # Legacy example
         if self.example_jd:
             parts.append(f"Example JD for reference style:\n{self.example_jd[:1000]}")
@@ -137,6 +186,8 @@ class VoiceProfileCreate(BaseModel):
     brand_values: list[str] = []
     source_examples: list[str] = []
     created_via: str = "manual"
+    rules: list[ProfileRule] = []
+    format_guidance: Optional[str] = None
     example_jd: Optional[str] = None
     is_default: bool = False
 

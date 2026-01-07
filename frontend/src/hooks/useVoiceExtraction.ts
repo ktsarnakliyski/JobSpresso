@@ -60,6 +60,22 @@ export function useVoiceExtraction(): UseVoiceExtractionReturn {
             values: data.brand_signals?.values ?? [],
             personality: data.brand_signals?.personality ?? '',
           },
+          suggestedRules: (data.suggested_rules ?? []).map((rule: {
+            text: string;
+            rule_type: string;
+            target?: string;
+            value?: string;
+            confidence: number;
+            evidence: string;
+          }) => ({
+            text: rule.text,
+            ruleType: rule.rule_type,
+            target: rule.target,
+            value: rule.value,
+            confidence: rule.confidence,
+            evidence: rule.evidence,
+          })),
+          formatGuidance: data.format_guidance,
           summary: data.summary,
         };
 
