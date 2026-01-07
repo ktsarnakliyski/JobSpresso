@@ -18,9 +18,9 @@ interface CategoryEvidenceProps {
   categoryEvidence: Record<AssessmentCategory, CategoryEvidenceType>;
 }
 
-export function CategoryEvidence({ categoryEvidence }: CategoryEvidenceProps) {
-  // Sort categories by score (worst first for priority) - memoized to prevent re-renders
-  const sortedCategories = useMemo(
+// Shared hook for sorting categories
+function useSortedCategories(categoryEvidence: Record<AssessmentCategory, CategoryEvidenceType>) {
+  return useMemo(
     () =>
       Object.entries(categoryEvidence).sort(([, a], [, b]) => a.score - b.score) as [
         AssessmentCategory,
@@ -28,15 +28,32 @@ export function CategoryEvidence({ categoryEvidence }: CategoryEvidenceProps) {
       ][],
     [categoryEvidence]
   );
+}
 
+// Shared internal component for category cards list
+function CategoryCardsList({ categoryEvidence }: CategoryEvidenceProps) {
+  const sortedCategories = useSortedCategories(categoryEvidence);
+
+  return (
+    <div className="space-y-3">
+      {sortedCategories.map(([category, evidence]) => (
+        <CategoryCard key={category} category={category} evidence={evidence} />
+      ))}
+    </div>
+  );
+}
+
+// Section variant (for use inside CollapsibleSection)
+export function CategoryEvidenceSection({ categoryEvidence }: CategoryEvidenceProps) {
+  return <CategoryCardsList categoryEvidence={categoryEvidence} />;
+}
+
+// Full component with Card wrapper (for standalone use)
+export function CategoryEvidence({ categoryEvidence }: CategoryEvidenceProps) {
   return (
     <Card>
       <h3 className="text-lg font-semibold text-navy-900 mb-5">Detailed Breakdown</h3>
-      <div className="space-y-3">
-        {sortedCategories.map(([category, evidence]) => (
-          <CategoryCard key={category} category={category} evidence={evidence} />
-        ))}
-      </div>
+      <CategoryCardsList categoryEvidence={categoryEvidence} />
     </Card>
   );
 }
@@ -78,13 +95,13 @@ function CategoryCard({ category, evidence }: CategoryCardProps) {
               {Math.round(evidence.score)}
             </span>
           </div>
-          <div className="h-1.5 bg-navy-100 rounded-full overflow-hidden">
+          <div className="h-2 bg-navy-100 rounded-full overflow-hidden">
             <div
-              className={cn(
-                'h-full rounded-full transition-all duration-500 ease-out-expo',
-                getProgressBarColor(evidence.score)
-              )}
-              style={{ width: `${evidence.score}%` }}
+              className="h-2 rounded-full transition-all duration-500 ease-out-expo"
+              style={{
+                width: `${Math.max(evidence.score, 3)}%`,
+                backgroundColor: getProgressBarColor(evidence.score).hex,
+              }}
             />
           </div>
         </div>

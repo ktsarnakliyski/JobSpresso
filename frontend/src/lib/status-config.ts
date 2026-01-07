@@ -78,13 +78,14 @@ export function getQuestionImportanceConfig(importance: string) {
 /**
  * Get progress bar color based on percentage.
  * Used by CategoryEvidence and QuestionCoverage components.
+ * Returns both Tailwind class and hex color for reliability.
  */
-export function getProgressBarColor(percent: number): string {
-  if (percent >= 80) return 'bg-emerald-500';
-  if (percent >= 60) return 'bg-emerald-400';
-  if (percent >= 50) return 'bg-amber-500';
-  if (percent >= 30) return 'bg-orange-500';
-  return 'bg-red-500';
+export function getProgressBarColor(percent: number): { className: string; hex: string } {
+  if (percent >= 80) return { className: 'bg-emerald-500', hex: '#10b981' };
+  if (percent >= 60) return { className: 'bg-emerald-400', hex: '#34d399' };
+  if (percent >= 50) return { className: 'bg-amber-500', hex: '#f59e0b' };
+  if (percent >= 30) return { className: 'bg-orange-500', hex: '#f97316' };
+  return { className: 'bg-red-500', hex: '#ef4444' };
 }
 
 /**
