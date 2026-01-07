@@ -42,8 +42,8 @@ export default function AnalyzePage() {
   return (
     <div className="space-y-8">
       <div className="animate-fade-up">
-        <h1 className="text-2xl font-bold text-espresso-900 tracking-tight">Analyze Job Description</h1>
-        <p className="text-espresso-600 mt-2">
+        <h1 className="text-2xl font-bold text-navy-900 tracking-tight">Analyze Job Description</h1>
+        <p className="text-navy-600 mt-2">
           Paste a job description to get a detailed assessment and improvement suggestions.
         </p>
       </div>
@@ -101,10 +101,10 @@ export default function AnalyzePage() {
             <Card>
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h3 className="text-lg font-semibold text-espresso-900">
+                  <h3 className="text-lg font-semibold text-navy-900">
                     Improved Version
                   </h3>
-                  <p className="text-sm text-espresso-500 mt-0.5">
+                  <p className="text-sm text-navy-500 mt-0.5">
                     Edit below and reassess to see your changes scored
                   </p>
                 </div>
@@ -119,7 +119,7 @@ export default function AnalyzePage() {
               />
 
               {improvedText && improvedText !== result.improvedText && (
-                <div className="mt-5 flex gap-3 pt-4 border-t border-espresso-100">
+                <div className="mt-5 flex gap-3 pt-4 border-t border-navy-100">
                   <Button onClick={handleReassess} disabled={isLoading}>
                     {isLoading ? (
                       <>

@@ -19,7 +19,7 @@ export function useVoiceExtraction(): UseVoiceExtractionReturn {
   const extractFromExamples = useCallback(
     async (examples: string[]): Promise<VoiceExtractionResult | null> => {
       if (examples.length === 0) {
-        setError('Please provide at least one example JD');
+        setError('Please provide at least one example');
         return null;
       }
 

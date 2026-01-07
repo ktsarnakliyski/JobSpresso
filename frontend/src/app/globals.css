@@ -3,37 +3,41 @@
 @tailwind utilities;
 
 :root {
-  /* Warm espresso-inspired palette */
-  --color-espresso-50: #faf8f6;
-  --color-espresso-100: #f3efe9;
-  --color-espresso-200: #e7dfd5;
-  --color-espresso-300: #d4c4b0;
-  --color-espresso-400: #b9a085;
-  --color-espresso-500: #a08567;
-  --color-espresso-600: #8a7057;
-  --color-espresso-700: #725c48;
-  --color-espresso-800: #5f4d3e;
-  --color-espresso-900: #514336;
+  /* Navy palette - Editorial Professional theme */
+  --color-navy-50: #f0f4f8;
+  --color-navy-100: #d9e2ec;
+  --color-navy-200: #bcccdc;
+  --color-navy-300: #9fb3c8;
+  --color-navy-400: #829ab1;
+  --color-navy-500: #627d98;
+  --color-navy-600: #486581;
+  --color-navy-700: #334e68;
+  --color-navy-800: #1e3a5f;
+  --color-navy-900: #102a43;
 
-  /* Accent colors */
-  --color-cream: #fefcf9;
+  /* Teal accent - for warmth & approachability */
+  --color-teal-light: #e6fffa;
+  --color-teal: #2a9d8f;
+  --color-teal-dark: #1d7a6d;
+
+  /* Supporting colors */
+  --color-background: #f7fafc;
   --color-amber-warm: #d97706;
-  --color-sage: #6b8e6b;
   --color-error: #dc2626;
   --color-success: #059669;
 
   /* Base colors */
-  --background: var(--color-cream);
-  --foreground: var(--color-espresso-900);
-  --muted: var(--color-espresso-500);
-  --border: var(--color-espresso-200);
+  --background: var(--color-background);
+  --foreground: var(--color-navy-900);
+  --muted: var(--color-navy-500);
+  --border: var(--color-navy-200);
   --card-bg: #ffffff;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(81, 67, 54, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(81, 67, 54, 0.08), 0 2px 4px -1px rgba(81, 67, 54, 0.04);
-  --shadow-lg: 0 10px 15px -3px rgba(81, 67, 54, 0.1), 0 4px 6px -2px rgba(81, 67, 54, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(81, 67, 54, 0.1), 0 10px 10px -5px rgba(81, 67, 54, 0.04);
+  /* Navy-tinted shadows for cohesion */
+  --shadow-sm: 0 1px 2px rgba(30, 58, 95, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(30, 58, 95, 0.08), 0 2px 4px -1px rgba(30, 58, 95, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(30, 58, 95, 0.1), 0 4px 6px -2px rgba(30, 58, 95, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(30, 58, 95, 0.1), 0 10px 10px -5px rgba(30, 58, 95, 0.04);
 
   /* Animation timing */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -50,7 +54,7 @@
   body {
     color: var(--foreground);
     background: var(--background);
-    font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
     line-height: 1.6;
   }
 
@@ -67,13 +71,13 @@
 
   /* Selection color */
   ::selection {
-    background-color: var(--color-espresso-200);
-    color: var(--color-espresso-900);
+    background-color: var(--color-navy-200);
+    color: var(--color-navy-900);
   }
 
   /* Focus visible styles */
   :focus-visible {
-    outline: 2px solid var(--color-espresso-500);
+    outline: 2px solid var(--color-navy-500);
     outline-offset: 2px;
   }
 
@@ -88,12 +92,12 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: var(--color-espresso-300);
+    background: var(--color-navy-300);
     border-radius: 4px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-espresso-400);
+    background: var(--color-navy-400);
   }
 }
 
@@ -102,24 +106,24 @@
   .input-base {
     @apply w-full rounded-xl border px-4 py-3;
     @apply transition-all duration-200;
-    @apply placeholder:text-espresso-400;
+    @apply placeholder:text-navy-400;
     border-color: var(--border);
     background: var(--card-bg);
   }
 
   .input-base:hover:not(:disabled) {
-    border-color: var(--color-espresso-300);
+    border-color: var(--color-navy-300);
   }
 
   .input-base:focus {
     @apply outline-none ring-2;
-    border-color: var(--color-espresso-500);
-    ring-color: rgba(114, 92, 72, 0.15);
+    border-color: var(--color-navy-500);
+    ring-color: rgba(30, 58, 95, 0.15);
   }
 
   .input-base:disabled {
     @apply opacity-60 cursor-not-allowed;
-    background: var(--color-espresso-50);
+    background: var(--color-navy-50);
   }
 }
 
@@ -170,9 +174,9 @@
     box-shadow: var(--shadow-lg);
   }
 
-  /* Gradient text */
+  /* Gradient text - navy to teal for visual interest */
   .gradient-text {
-    background: linear-gradient(135deg, var(--color-espresso-800) 0%, var(--color-espresso-600) 100%);
+    background: linear-gradient(135deg, var(--color-navy-800) 0%, var(--color-teal) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -235,9 +239,9 @@
 .shimmer {
   background: linear-gradient(
     90deg,
-    var(--color-espresso-100) 25%,
-    var(--color-espresso-50) 50%,
-    var(--color-espresso-100) 75%
+    var(--color-navy-100) 25%,
+    var(--color-navy-50) 50%,
+    var(--color-navy-100) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;

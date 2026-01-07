@@ -22,10 +22,10 @@ export function VoiceProfileSelector({
   if (!isLoaded) {
     return (
       <div className="w-full">
-        <label className="block text-sm font-medium text-espresso-700 mb-2">
+        <label className="block text-sm font-medium text-navy-700 mb-2">
           Voice Profile
         </label>
-        <div className="h-11 bg-espresso-100 rounded-xl shimmer" />
+        <div className="h-11 bg-navy-100 rounded-xl shimmer" />
       </div>
     );
   }
@@ -47,9 +47,9 @@ export function VoiceProfileSelector({
         onChange={(e) => onSelect(e.target.value || null)}
       />
       {profiles.length === 0 && (
-        <p className="text-sm text-espresso-500">
+        <p className="text-sm text-navy-500">
           No profiles yet.{' '}
-          <Link href="/profiles" className="text-espresso-700 font-medium hover:underline">
+          <Link href="/profiles" className="text-navy-700 font-medium hover:underline">
             Create one
           </Link>{' '}
           to customize your output.

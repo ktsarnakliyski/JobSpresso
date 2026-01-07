@@ -14,7 +14,7 @@ export function Badge({
   ...props
 }: BadgeProps) {
   const variants = {
-    default: 'bg-espresso-100 text-espresso-700 border-espresso-200',
+    default: 'bg-navy-100 text-navy-700 border-navy-200',
     success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     warning: 'bg-amber-50 text-amber-700 border-amber-200',
     error: 'bg-red-50 text-red-700 border-red-200',

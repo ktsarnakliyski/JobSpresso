@@ -21,7 +21,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
         {label && (
           <label
             htmlFor={id}
-            className="block text-sm font-medium text-espresso-700 mb-2"
+            className="block text-sm font-medium text-navy-700 mb-2"
           >
             {label}
           </label>
@@ -32,14 +32,14 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             id={id}
             disabled={disabled}
             className={cn(
-              'w-full rounded-xl border border-espresso-200 px-4 py-2.5 pr-10',
-              'bg-white text-espresso-900',
+              'w-full rounded-xl border border-navy-200 px-4 py-2.5 pr-10',
+              'bg-white text-navy-900',
               'transition-all duration-200 ease-out-expo',
-              'hover:border-espresso-300',
-              'focus:border-espresso-500 focus:ring-2 focus:ring-espresso-500/15 focus:outline-none',
+              'hover:border-navy-300',
+              'focus:border-navy-500 focus:ring-2 focus:ring-navy-500/15 focus:outline-none',
               'appearance-none cursor-pointer',
               error && 'border-red-400 focus:border-red-500 focus:ring-red-500/15',
-              disabled && 'opacity-60 cursor-not-allowed bg-espresso-50 hover:border-espresso-200',
+              disabled && 'opacity-60 cursor-not-allowed bg-navy-50 hover:border-navy-200',
               className
             )}
             {...props}
@@ -52,7 +52,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
           </select>
           <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
             <svg
-              className="w-5 h-5 text-espresso-400"
+              className="w-5 h-5 text-navy-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

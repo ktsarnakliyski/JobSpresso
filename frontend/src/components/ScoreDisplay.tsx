@@ -75,7 +75,7 @@ export function ScoreDisplay({ result }: ScoreDisplayProps) {
 
           {/* Category Status Badges */}
           <div className="flex-1 w-full">
-            <h3 className="text-sm font-medium text-espresso-500 mb-3">Category Overview</h3>
+            <h3 className="text-sm font-medium text-navy-500 mb-3">Category Overview</h3>
             <div className="flex flex-wrap gap-2">
               {categoryBadges.map(({ category, label, status, config }) => (
                 <div
@@ -116,8 +116,8 @@ export function ScoreDisplay({ result }: ScoreDisplayProps) {
       {issues.length > 0 && (
         <Card>
           <div className="flex items-center justify-between mb-5">
-            <h3 className="text-lg font-semibold text-espresso-900">Issues Found</h3>
-            <span className="text-sm text-espresso-500">{issues.length} total</span>
+            <h3 className="text-lg font-semibold text-navy-900">Issues Found</h3>
+            <span className="text-sm text-navy-500">{issues.length} total</span>
           </div>
           <div className="space-y-5">
             {criticalIssues.length > 0 && (
@@ -136,14 +136,14 @@ export function ScoreDisplay({ result }: ScoreDisplayProps) {
       {/* Positives */}
       {positives.length > 0 && (
         <Card>
-          <h3 className="text-lg font-semibold text-espresso-900 mb-5">What&apos;s Working Well</h3>
+          <h3 className="text-lg font-semibold text-navy-900 mb-5">What&apos;s Working Well</h3>
           <ul className="space-y-3">
             {positives.map((positive, index) => (
               <li key={index} className="flex items-start gap-3">
                 <div className="w-6 h-6 rounded-lg bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <CheckIcon className="w-4 h-4 text-emerald-600" />
                 </div>
-                <span className="text-espresso-700">{positive}</span>
+                <span className="text-navy-700">{positive}</span>
               </li>
             ))}
           </ul>
@@ -172,24 +172,24 @@ function IssueSection({ title, severity, issues }: IssueSectionProps) {
         >
           {title}
         </Badge>
-        <span className="text-sm text-espresso-500">({issues.length})</span>
+        <span className="text-sm text-navy-500">({issues.length})</span>
       </div>
       <ul className="space-y-3">
         {issues.map((issue, index) => (
           <li key={index} className={cn('p-4 rounded-xl border', styles.bg, styles.border)}>
-            <p className="font-medium text-espresso-900">{issue.description}</p>
+            <p className="font-medium text-navy-900">{issue.description}</p>
             {issue.found && (
-              <p className="text-sm mt-2 text-espresso-600">
+              <p className="text-sm mt-2 text-navy-600">
                 <span className="font-medium">Found:</span> &quot;{issue.found}&quot;
               </p>
             )}
             {issue.suggestion && (
-              <p className="text-sm mt-1 text-espresso-600">
+              <p className="text-sm mt-1 text-navy-600">
                 <span className="font-medium">Suggestion:</span> {issue.suggestion}
               </p>
             )}
             {issue.impact && (
-              <p className="text-sm mt-1 text-espresso-600">
+              <p className="text-sm mt-1 text-navy-600">
                 <span className="font-medium">Impact:</span> {issue.impact}
               </p>
             )}

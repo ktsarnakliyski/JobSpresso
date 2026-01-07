@@ -103,7 +103,7 @@ export default function GeneratePage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${formData.roleTitle.replace(/\s+/g, '_')}_JD.txt`;
+    a.download = `${formData.roleTitle.replace(/\s+/g, '_')}_Job_Description.txt`;
     a.click();
     URL.revokeObjectURL(url);
   }, [result?.generatedJd, formData.roleTitle]);
@@ -121,8 +121,8 @@ export default function GeneratePage() {
   return (
     <div className="space-y-8">
       <div className="animate-fade-up">
-        <h1 className="text-2xl font-bold text-espresso-900 tracking-tight">Generate Job Description</h1>
-        <p className="text-espresso-600 mt-2">
+        <h1 className="text-2xl font-bold text-navy-900 tracking-tight">Generate Job Description</h1>
+        <p className="text-navy-600 mt-2">
           Fill in the details and we will generate a polished job description for you.
         </p>
       </div>
@@ -163,7 +163,7 @@ export default function GeneratePage() {
           <button
             type="button"
             onClick={() => setShowOptional(!showOptional)}
-            className="flex items-center gap-2 text-sm text-espresso-600 hover:text-espresso-900 transition-colors font-medium"
+            className="flex items-center gap-2 text-sm text-navy-600 hover:text-navy-900 transition-colors font-medium"
           >
             <svg
               className={cn(
@@ -186,7 +186,7 @@ export default function GeneratePage() {
 
           {/* Optional Fields */}
           {showOptional && (
-            <div className="space-y-5 pl-5 border-l-2 border-espresso-200 animate-fade-up">
+            <div className="space-y-5 pl-5 border-l-2 border-navy-200 animate-fade-up">
               <TextArea
                 label="Company Description"
                 placeholder="Brief description of your company..."
@@ -281,10 +281,10 @@ export default function GeneratePage() {
           <Card>
             <div className="flex items-center justify-between mb-5">
               <div>
-                <h3 className="text-lg font-semibold text-espresso-900">
+                <h3 className="text-lg font-semibold text-navy-900">
                   Generated Job Description
                 </h3>
-                <p className="text-sm text-espresso-500 mt-0.5">
+                <p className="text-sm text-navy-500 mt-0.5">
                   {result.wordCount} words
                 </p>
               </div>
@@ -299,7 +299,7 @@ export default function GeneratePage() {
               </div>
             </div>
 
-            <div className="bg-espresso-50 rounded-xl p-5 whitespace-pre-wrap font-mono text-sm text-espresso-800 leading-relaxed">
+            <div className="bg-navy-50 rounded-xl p-5 whitespace-pre-wrap font-mono text-sm text-navy-800 leading-relaxed">
               {result.generatedJd}
             </div>
           </Card>
@@ -307,7 +307,7 @@ export default function GeneratePage() {
           {/* Notes */}
           {result.notes && result.notes.length > 0 && (
             <Card>
-              <h3 className="text-lg font-semibold text-espresso-900 mb-4">Notes</h3>
+              <h3 className="text-lg font-semibold text-navy-900 mb-4">Notes</h3>
               <ul className="space-y-3">
                 {result.notes.map((note, index) => (
                   <li key={index} className="flex items-start gap-3">
@@ -326,7 +326,7 @@ export default function GeneratePage() {
                         />
                       </svg>
                     </div>
-                    <span className="text-espresso-700">{note}</span>
+                    <span className="text-navy-700">{note}</span>
                   </li>
                 ))}
               </ul>

@@ -179,12 +179,12 @@ export default function ProfilesPage() {
     return (
       <div className="space-y-8">
         <div className="animate-fade-up">
-          <h1 className="text-2xl font-bold text-espresso-900 tracking-tight">Voice Profiles</h1>
-          <p className="text-espresso-600 mt-2">Loading...</p>
+          <h1 className="text-2xl font-bold text-navy-900 tracking-tight">Voice Profiles</h1>
+          <p className="text-navy-600 mt-2">Loading...</p>
         </div>
         <div className="space-y-4">
-          <div className="h-32 bg-espresso-100 rounded-2xl shimmer" />
-          <div className="h-32 bg-espresso-100 rounded-2xl shimmer" />
+          <div className="h-32 bg-navy-100 rounded-2xl shimmer" />
+          <div className="h-32 bg-navy-100 rounded-2xl shimmer" />
         </div>
       </div>
     );
@@ -267,8 +267,8 @@ export default function ProfilesPage() {
     <div className="space-y-8">
       <div className="flex items-start justify-between animate-fade-up">
         <div>
-          <h1 className="text-2xl font-bold text-espresso-900 tracking-tight">Voice Profiles</h1>
-          <p className="text-espresso-600 mt-2">
+          <h1 className="text-2xl font-bold text-navy-900 tracking-tight">Voice Profiles</h1>
+          <p className="text-navy-600 mt-2">
             Capture your unique writing style for consistent job descriptions.
           </p>
         </div>
@@ -327,9 +327,9 @@ export default function ProfilesPage() {
       {profiles.length === 0 ? (
         <Card className="animate-fade-up [animation-delay:100ms] opacity-0">
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-espresso-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <div className="w-16 h-16 bg-navy-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
               <svg
-                className="w-8 h-8 text-espresso-500"
+                className="w-8 h-8 text-navy-500"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -342,10 +342,10 @@ export default function ProfilesPage() {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-semibold text-espresso-900 mb-2">
+            <h3 className="text-lg font-semibold text-navy-900 mb-2">
               Capture Your Voice
             </h3>
-            <p className="text-espresso-600 mb-6 max-w-sm mx-auto">
+            <p className="text-navy-600 mb-6 max-w-sm mx-auto">
               Create a voice profile to ensure all your job descriptions sound authentically you.
             </p>
             <div className="flex gap-3 justify-center">
@@ -397,7 +397,7 @@ function ProfileCard({ profile, index, onDelete, onSetDefault }: ProfileCardProp
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-3">
-            <h3 className="text-lg font-semibold text-espresso-900 truncate">
+            <h3 className="text-lg font-semibold text-navy-900 truncate">
               {profile.name}
             </h3>
             {profile.isDefault && <Badge variant="success">Default</Badge>}
@@ -424,22 +424,22 @@ function ProfileCard({ profile, index, onDelete, onSetDefault }: ProfileCardProp
 
           {/* Vocabulary preview */}
           {((profile.wordsToAvoid?.length ?? 0) > 0 || (profile.wordsToPrefer?.length ?? 0) > 0) && (
-            <div className="text-sm text-espresso-600 space-y-1">
+            <div className="text-sm text-navy-600 space-y-1">
               {(profile.wordsToAvoid?.length ?? 0) > 0 && (
                 <p>
-                  <span className="font-medium text-espresso-700">Avoid:</span>{' '}
+                  <span className="font-medium text-navy-700">Avoid:</span>{' '}
                   {profile.wordsToAvoid?.slice(0, 5).join(', ')}
                   {(profile.wordsToAvoid?.length ?? 0) > 5 && (
-                    <span className="text-espresso-500"> +{(profile.wordsToAvoid?.length ?? 0) - 5} more</span>
+                    <span className="text-navy-500"> +{(profile.wordsToAvoid?.length ?? 0) - 5} more</span>
                   )}
                 </p>
               )}
               {(profile.wordsToPrefer?.length ?? 0) > 0 && (
                 <p>
-                  <span className="font-medium text-espresso-700">Prefer:</span>{' '}
+                  <span className="font-medium text-navy-700">Prefer:</span>{' '}
                   {profile.wordsToPrefer?.slice(0, 5).join(', ')}
                   {(profile.wordsToPrefer?.length ?? 0) > 5 && (
-                    <span className="text-espresso-500"> +{(profile.wordsToPrefer?.length ?? 0) - 5} more</span>
+                    <span className="text-navy-500"> +{(profile.wordsToPrefer?.length ?? 0) - 5} more</span>
                   )}
                 </p>
               )}
