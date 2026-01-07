@@ -423,23 +423,23 @@ function ProfileCard({ profile, index, onDelete, onSetDefault }: ProfileCardProp
           </div>
 
           {/* Vocabulary preview */}
-          {(profile.wordsToAvoid.length > 0 || profile.wordsToPrefer.length > 0) && (
+          {((profile.wordsToAvoid?.length ?? 0) > 0 || (profile.wordsToPrefer?.length ?? 0) > 0) && (
             <div className="text-sm text-espresso-600 space-y-1">
-              {profile.wordsToAvoid.length > 0 && (
+              {(profile.wordsToAvoid?.length ?? 0) > 0 && (
                 <p>
                   <span className="font-medium text-espresso-700">Avoid:</span>{' '}
-                  {profile.wordsToAvoid.slice(0, 5).join(', ')}
-                  {profile.wordsToAvoid.length > 5 && (
-                    <span className="text-espresso-500"> +{profile.wordsToAvoid.length - 5} more</span>
+                  {profile.wordsToAvoid?.slice(0, 5).join(', ')}
+                  {(profile.wordsToAvoid?.length ?? 0) > 5 && (
+                    <span className="text-espresso-500"> +{(profile.wordsToAvoid?.length ?? 0) - 5} more</span>
                   )}
                 </p>
               )}
-              {profile.wordsToPrefer.length > 0 && (
+              {(profile.wordsToPrefer?.length ?? 0) > 0 && (
                 <p>
                   <span className="font-medium text-espresso-700">Prefer:</span>{' '}
-                  {profile.wordsToPrefer.slice(0, 5).join(', ')}
-                  {profile.wordsToPrefer.length > 5 && (
-                    <span className="text-espresso-500"> +{profile.wordsToPrefer.length - 5} more</span>
+                  {profile.wordsToPrefer?.slice(0, 5).join(', ')}
+                  {(profile.wordsToPrefer?.length ?? 0) > 5 && (
+                    <span className="text-espresso-500"> +{(profile.wordsToPrefer?.length ?? 0) - 5} more</span>
                   )}
                 </p>
               )}

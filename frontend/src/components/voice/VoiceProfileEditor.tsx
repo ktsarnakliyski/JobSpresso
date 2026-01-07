@@ -47,19 +47,19 @@ export function VoiceProfileEditor({
     initialData?.sentenceStyle ?? 'balanced'
   );
   const [leadWithBenefits, setLeadWithBenefits] = useState(
-    initialData?.structureAnalysis.leadsWithBenefits ?? false
+    initialData?.structureAnalysis?.leadsWithBenefits ?? false
   );
   const [includeSalary, setIncludeSalary] = useState(
-    initialData?.structureAnalysis.includesSalary ?? false
+    initialData?.structureAnalysis?.includesSalary ?? false
   );
   const [wordsToPrefer, setWordsToPrefer] = useState(
-    initialData?.vocabulary.commonlyUsed.join(', ') ?? ''
+    initialData?.vocabulary?.commonlyUsed?.join(', ') ?? ''
   );
   const [wordsToAvoid, setWordsToAvoid] = useState(
-    initialData?.vocabulary.notablyAvoided.join(', ') ?? ''
+    initialData?.vocabulary?.notablyAvoided?.join(', ') ?? ''
   );
   const [brandValues, setBrandValues] = useState(
-    initialData?.brandSignals.values.join(', ') ?? ''
+    initialData?.brandSignals?.values?.join(', ') ?? ''
   );
 
   const handleSave = useCallback(() => {
