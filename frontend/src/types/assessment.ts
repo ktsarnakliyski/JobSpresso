@@ -2,6 +2,10 @@
 
 export type IssueSeverity = 'critical' | 'warning' | 'info';
 
+export type EvidenceStatus = 'good' | 'warning' | 'critical';
+
+export type QuestionImportance = 'high' | 'medium' | 'low';
+
 export type AssessmentCategory =
   | 'inclusivity'
   | 'readability'
@@ -19,13 +23,47 @@ export interface Issue {
   impact?: string;
 }
 
+// NEW: Evidence-based category breakdown (COSMO-inspired)
+export interface CategoryEvidence {
+  score: number;
+  status: EvidenceStatus;
+  supportingExcerpts: string[];
+  missingElements: string[];
+  opportunity: string;
+  impactPrediction?: string;
+}
+
+// NEW: Candidate question coverage (Rufus Q&A-inspired)
+export interface QuestionCoverage {
+  questionId: string;
+  questionText: string;
+  isAnswered: boolean;
+  importance: QuestionImportance;
+  evidence?: string;
+  suggestion?: string;
+  impactStat: string;
+}
+
 export interface AssessmentResult {
+  // Core scores
   overallScore: number;
   interpretation: 'excellent' | 'good' | 'needs_work' | 'poor' | 'critical';
   categoryScores: Record<AssessmentCategory, number>;
   issues: Issue[];
   positives: string[];
   improvedText: string;
+
+  // Evidence-based breakdown
+  categoryEvidence: Record<AssessmentCategory, CategoryEvidence>;
+
+  // Question coverage
+  questionCoverage: QuestionCoverage[];
+  questionsAnswered: number;
+  questionsTotal: number;
+  questionCoveragePercent: number;
+
+  // HR metrics
+  estimatedApplicationBoost?: number;
 }
 
 export interface GenerateResult {

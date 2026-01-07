@@ -4,9 +4,8 @@ import json
 import re
 from typing import Optional
 from pydantic import BaseModel
-from anthropic import Anthropic
+from anthropic import AsyncAnthropic
 from app.models.voice_profile import VoiceProfile
-from app.models.assessment import AssessmentCategory, IssueSeverity
 
 
 class AnalyzeRequest(BaseModel):
@@ -41,7 +40,7 @@ Your expertise includes:
 
 Always provide specific, actionable feedback with concrete suggestions."""
 
-    ANALYSIS_PROMPT_TEMPLATE = """Analyze this job description and provide detailed feedback.
+    ANALYSIS_PROMPT_TEMPLATE = """Analyze this job description and provide detailed, evidence-based feedback.
 
 {voice_context}
 
@@ -58,6 +57,32 @@ Provide your analysis as JSON with this exact structure:
         "clarity": <0-100>,
         "voice_match": <0-100 or null if no profile>
     }},
+    "category_evidence": {{
+        "inclusivity": {{
+            "supporting_excerpts": ["<exact quotes from JD showing good inclusive language>"],
+            "missing_elements": ["<specific inclusive elements that are missing>"],
+            "opportunity": "<the single most impactful improvement for this category>",
+            "impact_prediction": "<e.g., 'Removing gendered language could increase diverse applicants by 20%'>"
+        }},
+        "readability": {{
+            "supporting_excerpts": ["<quotes of clear, simple language>"],
+            "missing_elements": ["<jargon, complex sentences, or unclear phrasing>"],
+            "opportunity": "<main readability improvement>",
+            "impact_prediction": null
+        }},
+        "clarity": {{
+            "supporting_excerpts": ["<specific, concrete descriptions>"],
+            "missing_elements": ["<vague phrases that need more detail>"],
+            "opportunity": "<how to make role expectations clearer>",
+            "impact_prediction": null
+        }},
+        "voice_match": {{
+            "supporting_excerpts": ["<text that matches the voice profile tone>"],
+            "missing_elements": ["<aspects that don't match the profile>"],
+            "opportunity": "<how to better match the voice>",
+            "impact_prediction": null
+        }}
+    }},
     "issues": [
         {{
             "severity": "critical" | "warning" | "info",
@@ -65,14 +90,20 @@ Provide your analysis as JSON with this exact structure:
             "description": "<what's wrong>",
             "found": "<exact text that's problematic>",
             "suggestion": "<specific replacement or fix>",
-            "impact": "<why this matters, with data if applicable>"
+            "impact": "<why this matters, with research-backed data if possible>"
         }}
     ],
-    "positives": ["<things done well>"],
+    "positives": ["<specific things done well - quote the text when possible>"],
     "improved_text": "<the full improved version of the JD>"
 }}
 
-Be thorough but practical. Focus on changes that will measurably improve candidate response rates."""
+IMPORTANT GUIDELINES:
+1. Always quote specific text from the JD to support your scores in supporting_excerpts
+2. For each issue, provide the exact problematic text in "found"
+3. Impact predictions should include research-backed statistics when possible (e.g., salary transparency increases applications by 30%)
+4. Focus on changes that will measurably improve candidate response rates
+5. Be practical - prioritize high-impact, easy-to-implement changes
+6. If no voice profile is provided, set voice_match supporting_excerpts and missing_elements to empty arrays"""
 
     GENERATION_PROMPT_TEMPLATE = """Generate a job description based on these inputs.
 
@@ -101,7 +132,7 @@ Provide your response as JSON:
 }}"""
 
     def __init__(self, api_key: str):
-        self.client = Anthropic(api_key=api_key)
+        self.client = AsyncAnthropic(api_key=api_key)
         self.model = "claude-sonnet-4-20250514"
 
     def _build_analysis_prompt(
@@ -175,7 +206,7 @@ Provide your response as JSON:
         """Analyze a job description using Claude."""
         prompt = self._build_analysis_prompt(request.jd_text, request.voice_profile)
 
-        message = self.client.messages.create(
+        message = await self.client.messages.create(
             model=self.model,
             max_tokens=4096,
             system=self.SYSTEM_PROMPT,
@@ -193,7 +224,7 @@ Provide your response as JSON:
         """Generate a job description using Claude."""
         prompt = self._build_generation_prompt(request, voice_profile)
 
-        message = self.client.messages.create(
+        message = await self.client.messages.create(
             model=self.model,
             max_tokens=4096,
             system=self.SYSTEM_PROMPT,
@@ -224,7 +255,7 @@ Extract and return as JSON:
     "summary": "<2-3 sentence description of the voice>"
 }}"""
 
-        message = self.client.messages.create(
+        message = await self.client.messages.create(
             model=self.model,
             max_tokens=2048,
             system=self.SYSTEM_PROMPT,
