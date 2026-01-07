@@ -59,3 +59,52 @@ def test_extract_voice_requires_examples():
     """Rejects requests without example JDs."""
     response = client.post("/api/voice/extract", json={"example_jds": []})
     assert response.status_code == 400
+
+
+# --- Voice DNA Enhanced Endpoint Tests ---
+
+
+def test_extract_voice_returns_enhanced_fields():
+    """Test that extraction returns new Voice DNA fields."""
+    mock_service = AsyncMock()
+    mock_service.extract_voice_profile.return_value = {
+        "tone": "friendly",
+        "tone_formality": 4,
+        "tone_description": "Friendly and warm",
+        "address_style": "direct_you",
+        "sentence_style": "balanced",
+        "structure_analysis": {
+            "leads_with_benefits": True,
+            "typical_section_order": ["intro", "benefits", "responsibilities", "requirements"],
+            "includes_salary": False,
+        },
+        "vocabulary": {
+            "commonly_used": ["team", "growth"],
+            "notably_avoided": ["ninja"],
+        },
+        "brand_signals": {
+            "values": ["innovation"],
+            "personality": "Modern tech company",
+        },
+        "summary": "Friendly, benefit-focused voice.",
+    }
+
+    app.dependency_overrides[get_claude_service] = lambda: mock_service
+
+    try:
+        response = client.post(
+            "/api/voice/extract",
+            json={"example_jds": ["Sample JD text"]},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+
+        # New fields
+        assert data["tone_formality"] == 4
+        assert data["tone_description"] == "Friendly and warm"
+        assert data["structure_analysis"]["leads_with_benefits"] is True
+        assert "innovation" in data["brand_signals"]["values"]
+        assert data["vocabulary"]["commonly_used"] == ["team", "growth"]
+    finally:
+        app.dependency_overrides.clear()
