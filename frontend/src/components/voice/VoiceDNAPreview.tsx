@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Card, Button, Badge } from '@/components/ui';
+import { Card, Button, Badge, BackButton } from '@/components/ui';
 import { VoiceExtractionResult, FORMALITY_LABELS } from '@/types/voice-profile';
 
 interface VoiceDNAPreviewProps {
@@ -16,20 +16,7 @@ export function VoiceDNAPreview({ result, onAccept, onAdjust, onBack }: VoiceDNA
   return (
     <div className="space-y-6">
       <div>
-        <button
-          onClick={onBack}
-          className="text-espresso-600 hover:text-espresso-800 text-sm flex items-center gap-1 mb-4"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          Back
-        </button>
+        <BackButton onClick={onBack} />
         <h2 className="text-xl font-semibold text-espresso-900">Here&apos;s What I Learned</h2>
         <p className="text-espresso-600 mt-2">Based on your examples, this is your writing voice:</p>
       </div>

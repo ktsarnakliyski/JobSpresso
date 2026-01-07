@@ -200,6 +200,12 @@ Provide your response as JSON:
         """Parse Claude's JSON response for generation."""
         return self._parse_analysis_response(response_text)
 
+    def _extract_response_text(self, message) -> str:
+        """Extract text content from Claude API response, with validation."""
+        if not message.content or not hasattr(message.content[0], 'text'):
+            raise ValueError("Unexpected response format from Claude API: empty or invalid content")
+        return message.content[0].text
+
     async def analyze(
         self, request: AnalyzeRequest
     ) -> dict:
@@ -213,9 +219,7 @@ Provide your response as JSON:
             messages=[{"role": "user", "content": prompt}],
         )
 
-        if not message.content or not hasattr(message.content[0], 'text'):
-            raise ValueError("Unexpected response format from Claude API: empty or invalid content")
-        response_text = message.content[0].text
+        response_text = self._extract_response_text(message)
         return self._parse_analysis_response(response_text)
 
     async def generate(
@@ -231,9 +235,7 @@ Provide your response as JSON:
             messages=[{"role": "user", "content": prompt}],
         )
 
-        if not message.content or not hasattr(message.content[0], 'text'):
-            raise ValueError("Unexpected response format from Claude API: empty or invalid content")
-        response_text = message.content[0].text
+        response_text = self._extract_response_text(message)
         return self._parse_generation_response(response_text)
 
     VOICE_EXTRACTION_PROMPT = """Analyze these job descriptions and extract the writing voice/style.
@@ -284,9 +286,7 @@ Focus on patterns that appear consistently across the examples. Be specific."""
             messages=[{"role": "user", "content": prompt}],
         )
 
-        if not message.content or not hasattr(message.content[0], 'text'):
-            raise ValueError("Unexpected response format from Claude API: empty or invalid content")
-        response_text = message.content[0].text
+        response_text = self._extract_response_text(message)
 
         # Extract JSON from response
         json_match = re.search(r'\{.*\}', response_text, re.DOTALL)

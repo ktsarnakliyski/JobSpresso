@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Card, Button, TextArea, Select } from '@/components/ui';
+import { Card, Button, TextArea, Select, BackButton } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import {
   VoiceProfile,
@@ -118,20 +118,7 @@ export function VoiceProfileEditor({
   return (
     <div className="space-y-6">
       <div>
-        <button
-          onClick={onBack}
-          className="text-espresso-600 hover:text-espresso-800 text-sm flex items-center gap-1 mb-4"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
-          Back
-        </button>
+        <BackButton onClick={onBack} />
         <h2 className="text-xl font-semibold text-espresso-900">Fine-Tune Your Voice Profile</h2>
         <p className="text-espresso-600 mt-2">Adjust any settings to match your exact preferences.</p>
       </div>
