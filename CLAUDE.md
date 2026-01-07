@@ -119,6 +119,16 @@ docker compose -f docker-compose.prod.yml up -d --build
 - Frontend code changes (Next.js)
 - Backend code changes (uvicorn --reload)
 
+**IMPORTANT - Frontend Cache in Docker:**
+The frontend container uses an anonymous volume for `.next` cache (`/app/.next`). This cache persists across restarts and is separate from the host filesystem. If you see "Element type is invalid" or "React Client Manifest" errors after adding new components:
+
+```bash
+# Recreate the frontend container to clear its .next cache
+docker compose stop frontend && docker compose rm -f frontend && docker compose up -d frontend
+```
+
+This is necessary because `docker compose restart` doesn't clear anonymous volumes.
+
 ## Files Reference
 
 - `.env.example` — Environment template (copy to `.env`)
