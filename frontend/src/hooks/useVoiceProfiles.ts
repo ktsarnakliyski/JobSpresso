@@ -3,13 +3,33 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { VoiceProfile } from '@/types/voice-profile';
+import {
+  VoiceProfile,
+  createDefaultVoiceProfile,
+  createDefaultStructurePreferences,
+} from '@/types/voice-profile';
 
 const STORAGE_KEY = 'jobspresso_voice_profiles';
 const SELECTED_PROFILE_KEY = 'jobspresso_selected_profile';
 
 function generateId(): string {
   return `profile_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
+}
+
+/**
+ * Migrate legacy profiles to the new Voice DNA format.
+ */
+function migrateProfile(profile: Partial<VoiceProfile>): VoiceProfile {
+  return createDefaultVoiceProfile({
+    ...profile,
+    // Ensure all new fields exist with defaults
+    toneFormality: profile.toneFormality ?? 3,
+    toneDescription: profile.toneDescription ?? 'Professional',
+    structurePreferences: profile.structurePreferences ?? createDefaultStructurePreferences(),
+    brandValues: profile.brandValues ?? [],
+    sourceExamples: profile.sourceExamples ?? [],
+    createdVia: profile.createdVia ?? 'manual',
+  });
 }
 
 export function useVoiceProfiles() {
@@ -25,7 +45,9 @@ export function useVoiceProfiles() {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        setProfiles(parsed);
+        // Migrate any legacy profiles to new format
+        const migrated = parsed.map(migrateProfile);
+        setProfiles(migrated);
       } catch (e) {
         console.error('Failed to parse stored profiles:', e);
       }
@@ -57,7 +79,7 @@ export function useVoiceProfiles() {
 
   const addProfile = useCallback((profile: Omit<VoiceProfile, 'id' | 'createdAt'>) => {
     const newProfile: VoiceProfile = {
-      ...profile,
+      ...createDefaultVoiceProfile(profile),
       id: generateId(),
       createdAt: new Date().toISOString(),
     };
@@ -116,13 +138,15 @@ export function useVoiceProfiles() {
 
   const importProfiles = useCallback((jsonString: string) => {
     try {
-      const imported = JSON.parse(jsonString) as VoiceProfile[];
-      // Regenerate IDs to avoid conflicts
-      const withNewIds = imported.map((p) => ({
-        ...p,
-        id: generateId(),
-        createdAt: new Date().toISOString(),
-      }));
+      const imported = JSON.parse(jsonString) as Partial<VoiceProfile>[];
+      // Migrate and regenerate IDs
+      const withNewIds = imported.map((p) =>
+        migrateProfile({
+          ...p,
+          id: generateId(),
+          createdAt: new Date().toISOString(),
+        })
+      );
       setProfiles((prev) => [...prev, ...withNewIds]);
       return { success: true, count: withNewIds.length };
     } catch {
