@@ -78,3 +78,34 @@ def test_parse_analysis_response(claude_service):
     assert result["scores"]["inclusivity"] == 75
     assert len(result["issues"]) == 1
     assert result["issues"][0]["found"] == "ninja"
+
+
+# --- Voice DNA Tests ---
+
+
+def test_extract_voice_prompt_requests_enhanced_fields(claude_service):
+    """Test that voice extraction prompt asks for new Voice DNA fields."""
+    prompt = claude_service._build_voice_extraction_prompt(["Example JD text here"])
+
+    # Should request new fields
+    assert "tone_formality" in prompt or "formality" in prompt.lower()
+    assert "brand" in prompt.lower() or "values" in prompt.lower()
+    assert "structure" in prompt.lower()
+    assert "section" in prompt.lower() or "order" in prompt.lower()
+
+
+def test_voice_extraction_prompt_includes_all_examples(claude_service):
+    """Test that voice extraction prompt includes all example JDs."""
+    examples = [
+        "We're a startup building cool stuff.",
+        "Join our mission-driven team.",
+        "Competitive salary and benefits."
+    ]
+    prompt = claude_service._build_voice_extraction_prompt(examples)
+
+    assert "cool stuff" in prompt
+    assert "mission-driven" in prompt
+    assert "Competitive salary" in prompt
+    assert "Example 1" in prompt
+    assert "Example 2" in prompt
+    assert "Example 3" in prompt
