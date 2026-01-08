@@ -1,7 +1,14 @@
 // frontend/src/hooks/useVoiceExtraction.ts
 
 import { useState, useCallback } from 'react';
-import { VoiceExtractionResult } from '@/types/voice-profile';
+import {
+  VoiceExtractionResult,
+  ToneStyle,
+  AddressStyle,
+  SentenceStyle,
+  RuleType,
+} from '@/types/voice-profile';
+import { apiRequest } from '@/lib/api';
 
 interface UseVoiceExtractionReturn {
   isExtracting: boolean;
@@ -9,6 +16,38 @@ interface UseVoiceExtractionReturn {
   result: VoiceExtractionResult | null;
   extractFromExamples: (examples: string[]) => Promise<VoiceExtractionResult | null>;
   reset: () => void;
+}
+
+// Response type from the API (snake_case)
+interface VoiceExtractionApiResponse {
+  tone: ToneStyle;
+  tone_formality: number;
+  tone_description: string;
+  address_style: AddressStyle;
+  sentence_style: SentenceStyle;
+  structure_analysis?: {
+    leads_with_benefits?: boolean;
+    typical_section_order?: string[];
+    includes_salary?: boolean;
+  };
+  vocabulary?: {
+    commonly_used?: string[];
+    notably_avoided?: string[];
+  };
+  brand_signals?: {
+    values?: string[];
+    personality?: string;
+  };
+  suggested_rules?: Array<{
+    text: string;
+    rule_type: RuleType;
+    target?: string;
+    value?: string;
+    confidence: number;
+    evidence: string;
+  }>;
+  format_guidance?: string;
+  summary: string;
 }
 
 export function useVoiceExtraction(): UseVoiceExtractionReturn {
@@ -27,18 +66,10 @@ export function useVoiceExtraction(): UseVoiceExtractionReturn {
       setError(null);
 
       try {
-        const response = await fetch('/api/voice/extract', {
+        const data = await apiRequest<VoiceExtractionApiResponse>('/api/voice/extract', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ example_jds: examples }),
         });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.detail || 'Failed to extract voice profile');
-        }
-
-        const data = await response.json();
 
         // Transform snake_case to camelCase
         const transformed: VoiceExtractionResult = {
@@ -60,14 +91,7 @@ export function useVoiceExtraction(): UseVoiceExtractionReturn {
             values: data.brand_signals?.values ?? [],
             personality: data.brand_signals?.personality ?? '',
           },
-          suggestedRules: (data.suggested_rules ?? []).map((rule: {
-            text: string;
-            rule_type: string;
-            target?: string;
-            value?: string;
-            confidence: number;
-            evidence: string;
-          }) => ({
+          suggestedRules: (data.suggested_rules ?? []).map((rule) => ({
             text: rule.text,
             ruleType: rule.rule_type,
             target: rule.target,

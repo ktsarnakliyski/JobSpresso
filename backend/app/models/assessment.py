@@ -4,6 +4,8 @@ from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, computed_field
 
+from app.services.field_mappings import CATEGORY_WEIGHTS
+
 
 class EvidenceStatus(str, Enum):
     """Status indicator for category evidence (like COSMO's checkmarks)."""
@@ -49,18 +51,6 @@ class AssessmentCategory(str, Enum):
     COMPLETENESS = "completeness"
     CLARITY = "clarity"
     VOICE_MATCH = "voice_match"
-
-    @property
-    def weight(self) -> int:
-        weights = {
-            self.INCLUSIVITY: 25,
-            self.READABILITY: 20,
-            self.STRUCTURE: 15,
-            self.COMPLETENESS: 15,
-            self.CLARITY: 10,
-            self.VOICE_MATCH: 15,
-        }
-        return weights[self]
 
     @property
     def label(self) -> str:
@@ -144,8 +134,9 @@ class AssessmentResult(BaseModel):
     @computed_field
     @property
     def overall_score(self) -> float:
+        """Calculate weighted overall score using CATEGORY_WEIGHTS from field_mappings."""
         total = sum(
-            score * (category.weight / 100)
+            score * CATEGORY_WEIGHTS.get(category.value, 0)
             for category, score in self.category_scores.items()
         )
         return round(total, 2)

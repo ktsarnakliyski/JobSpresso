@@ -58,15 +58,48 @@ interface AnalyzeResponse {
   estimated_application_boost?: number;
 }
 
+// Type guards for runtime validation
+const VALID_CATEGORIES: AssessmentCategory[] = [
+  'inclusivity', 'readability', 'structure',
+  'completeness', 'clarity', 'voice_match'
+];
+
+function isValidCategory(value: string): value is AssessmentCategory {
+  return VALID_CATEGORIES.includes(value as AssessmentCategory);
+}
+
+const VALID_SEVERITIES = ['critical', 'warning', 'info'];
+
+function isValidSeverity(value: string): value is Issue['severity'] {
+  return VALID_SEVERITIES.includes(value);
+}
+
+const VALID_EVIDENCE_STATUSES = ['good', 'warning', 'critical'];
+
+function isValidEvidenceStatus(value: string): value is EvidenceStatus {
+  return VALID_EVIDENCE_STATUSES.includes(value);
+}
+
+const VALID_QUESTION_IMPORTANCES = ['high', 'medium', 'low'];
+
+function isValidQuestionImportance(value: string): value is QuestionImportance {
+  return VALID_QUESTION_IMPORTANCES.includes(value);
+}
+
 function transformCategoryEvidence(
   evidence: Record<string, CategoryEvidenceResponse>
 ): Record<AssessmentCategory, CategoryEvidence> {
   const result: Partial<Record<AssessmentCategory, CategoryEvidence>> = {};
 
   for (const [key, value] of Object.entries(evidence)) {
-    result[key as AssessmentCategory] = {
+    if (!isValidCategory(key)) {
+      console.warn(`Invalid category from API: ${key}`);
+      continue;
+    }
+    const status = isValidEvidenceStatus(value.status) ? value.status : 'warning';
+    result[key] = {
       score: value.score,
-      status: value.status as EvidenceStatus,
+      status,
       supportingExcerpts: value.supporting_excerpts,
       missingElements: value.missing_elements,
       opportunity: value.opportunity,
@@ -84,7 +117,7 @@ function transformQuestionCoverage(
     questionId: q.question_id,
     questionText: q.question_text,
     isAnswered: q.is_answered,
-    importance: q.importance as QuestionImportance,
+    importance: isValidQuestionImportance(q.importance) ? q.importance : 'medium',
     evidence: q.evidence,
     suggestion: q.suggestion,
     impactStat: q.impact_stat,
@@ -92,18 +125,28 @@ function transformQuestionCoverage(
 }
 
 function transformResponse(response: AnalyzeResponse): AssessmentResult {
-  return {
-    overallScore: response.overall_score,
-    interpretation: response.interpretation as AssessmentResult['interpretation'],
-    categoryScores: response.category_scores as Record<AssessmentCategory, number>,
-    issues: response.issues.map((issue) => ({
-      severity: issue.severity as Issue['severity'],
-      category: issue.category as AssessmentCategory,
+  // Transform issues with validation, skipping invalid ones
+  const validIssues: Issue[] = [];
+  for (const issue of response.issues) {
+    if (!isValidCategory(issue.category)) {
+      console.warn(`Invalid category in issue from API: ${issue.category}`);
+      continue;
+    }
+    validIssues.push({
+      severity: isValidSeverity(issue.severity) ? issue.severity : 'info',
+      category: issue.category,
       description: issue.description,
       found: issue.found,
       suggestion: issue.suggestion,
       impact: issue.impact,
-    })),
+    });
+  }
+
+  return {
+    overallScore: response.overall_score,
+    interpretation: response.interpretation as AssessmentResult['interpretation'],
+    categoryScores: response.category_scores as Record<AssessmentCategory, number>,
+    issues: validIssues,
     positives: response.positives,
     improvedText: response.improved_text,
     // New fields

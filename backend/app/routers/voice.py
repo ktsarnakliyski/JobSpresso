@@ -2,11 +2,12 @@
 
 import logging
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 
 from app.config import get_settings
 from app.services.claude_service import ClaudeService
+from app.rate_limit import limiter
 
 logger = logging.getLogger(__name__)
 
@@ -91,7 +92,9 @@ class ExtractVoiceResponse(BaseModel):
 
 
 @router.post("/extract", response_model=ExtractVoiceResponse)
+@limiter.limit("5/minute")
 async def extract_voice_profile(
+    request: Request,
     body: ExtractVoiceRequest,
     service: ClaudeService = Depends(get_claude_service),
 ):
@@ -163,10 +166,14 @@ async def extract_voice_profile(
             words_avoided=vocabulary.notably_avoided,
             structure_preference="mixed",
         )
-    except (ValueError, TypeError, KeyError) as e:
+    except ValueError as e:
+        # Validation errors - safe to expose
+        raise HTTPException(status_code=400, detail=str(e))
+    except (TypeError, KeyError) as e:
+        logger.exception("Failed to process extraction result")
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to process extraction result: {str(e)}"
+            detail="Failed to process extraction result. Please try again."
         )
     except Exception as e:
         # Log unexpected errors but don't expose internal details

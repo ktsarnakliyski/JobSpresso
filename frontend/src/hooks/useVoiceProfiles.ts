@@ -64,14 +64,19 @@ export function useVoiceProfiles() {
     setIsLoaded(true);
   }, []);
 
-  // Save to localStorage whenever profiles change
+  // Save to localStorage whenever profiles change (with debounce to prevent race conditions)
   useEffect(() => {
     if (!isLoaded) return;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
-    } catch (e) {
-      console.error('Failed to save profiles to localStorage:', e);
-    }
+
+    const timeoutId = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles));
+      } catch (e) {
+        console.error('Failed to save profiles to localStorage:', e);
+      }
+    }, 300);  // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
   }, [profiles, isLoaded]);
 
   // Save selected profile ID
@@ -149,15 +154,33 @@ export function useVoiceProfiles() {
 
   const importProfiles = useCallback((jsonString: string) => {
     try {
-      const imported = JSON.parse(jsonString) as Partial<VoiceProfile>[];
+      const parsed = JSON.parse(jsonString);
+
+      // Validate it's an array
+      if (!Array.isArray(parsed)) {
+        return { success: false, error: 'Expected an array of profiles' };
+      }
+
+      // Validate each profile has required fields
+      for (let i = 0; i < parsed.length; i++) {
+        const p = parsed[i];
+        if (typeof p !== 'object' || p === null) {
+          return { success: false, error: `Profile ${i + 1} is not a valid object` };
+        }
+        if (typeof p.name !== 'string' || !p.name.trim()) {
+          return { success: false, error: `Profile ${i + 1} is missing a valid name` };
+        }
+      }
+
       // Migrate and regenerate IDs
-      const withNewIds = imported.map((p) =>
+      const withNewIds = parsed.map((p: Partial<VoiceProfile>) =>
         migrateProfile({
-          ...p,
+          ...createDefaultVoiceProfile(p),
           id: generateId(),
           createdAt: new Date().toISOString(),
         })
       );
+
       setProfiles((prev) => [...prev, ...withNewIds]);
       return { success: true, count: withNewIds.length };
     } catch {

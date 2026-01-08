@@ -83,6 +83,8 @@ export const CATEGORY_LABELS: Record<AssessmentCategory, string> = {
   voice_match: 'Voice Match',
 };
 
+// TODO: These weights should be received from API to stay in sync with backend
+// See: backend/app/services/field_mappings.py CATEGORY_WEIGHTS
 export const CATEGORY_WEIGHTS: Record<AssessmentCategory, number> = {
   inclusivity: 25,
   readability: 20,
