@@ -63,3 +63,59 @@ def test_analyze_requires_jd_text():
     """Rejects requests without jd_text."""
     response = client.post("/api/analyze", json={})
     assert response.status_code == 422
+
+
+# === Request Size Limit Middleware Tests ===
+
+def test_request_size_limit_rejects_oversized_request():
+    """Middleware rejects requests over 500KB with 413."""
+    # Create a payload just over 500KB
+    oversized_text = "x" * 501_000  # ~501KB
+    response = client.post(
+        "/api/analyze",
+        json={"jd_text": oversized_text},
+    )
+    assert response.status_code == 413
+    assert "too large" in response.json()["detail"].lower()
+
+
+def test_request_size_limit_allows_normal_request():
+    """Middleware allows requests under 500KB."""
+    # Normal-sized request should pass middleware (may fail validation, but not 413)
+    normal_text = "x" * 100  # 100 bytes
+    response = client.post(
+        "/api/analyze",
+        json={"jd_text": normal_text},
+    )
+    # Should not be 413 - validation error (422) is expected for short/invalid text
+    assert response.status_code != 413
+
+
+# === Input Validation Tests ===
+
+def test_analyze_rejects_oversized_jd_text():
+    """Rejects jd_text exceeding max_length (50000 chars) with 422."""
+    oversized_jd = "a" * 50_001  # Just over the 50000 char limit
+    response = client.post(
+        "/api/analyze",
+        json={"jd_text": oversized_jd},
+    )
+    assert response.status_code == 422
+    # Verify it's a validation error about length
+    detail = response.json()["detail"]
+    assert any("50000" in str(err) or "max" in str(err).lower() for err in detail)
+
+
+def test_analyze_accepts_max_length_jd_text():
+    """Accepts jd_text at exactly max_length (50000 chars)."""
+    # Create valid JD at exactly max length
+    max_length_jd = "a" * 50_000
+    response = client.post(
+        "/api/analyze",
+        json={"jd_text": max_length_jd},
+    )
+    # Should not be 422 for length - may be 413 (size limit) or other error, but not length validation
+    if response.status_code == 422:
+        detail = response.json()["detail"]
+        # If 422, should NOT be about max_length
+        assert not any("50000" in str(err) for err in detail)
