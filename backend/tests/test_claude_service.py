@@ -4,6 +4,12 @@ import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 from app.services.claude_service import ClaudeService, AnalyzeRequest, GenerateRequest
 from app.models.voice_profile import VoiceProfile, ToneStyle, AddressStyle, SentenceStyle
+from app.prompts import (
+    build_analysis_prompt,
+    build_generation_prompt,
+    build_improvement_prompt,
+    build_voice_extraction_prompt,
+)
 
 
 @pytest.fixture
@@ -24,17 +30,17 @@ def claude_service():
     return ClaudeService(api_key="test-key")
 
 
-def test_build_analysis_prompt(claude_service, mock_voice_profile):
+def test_build_analysis_prompt(mock_voice_profile):
     """Analysis prompt includes JD and voice profile context."""
     jd_text = "We are looking for a ninja developer."
-    prompt = claude_service._build_analysis_prompt(jd_text, mock_voice_profile)
+    prompt = build_analysis_prompt(jd_text, mock_voice_profile)
 
     assert "ninja developer" in prompt
     assert "Test Profile" in prompt
     assert "avoid" in prompt.lower()
 
 
-def test_build_generation_prompt(claude_service, mock_voice_profile):
+def test_build_generation_prompt(mock_voice_profile):
     """Generation prompt includes all input fields."""
     request = GenerateRequest(
         role_title="Senior Developer",
@@ -42,7 +48,7 @@ def test_build_generation_prompt(claude_service, mock_voice_profile):
         requirements=["5+ years Python"],
         company_description="A startup",
     )
-    prompt = claude_service._build_generation_prompt(request, mock_voice_profile)
+    prompt = build_generation_prompt(request, mock_voice_profile)
 
     assert "Senior Developer" in prompt
     assert "Write code" in prompt
@@ -73,7 +79,7 @@ def test_parse_analysis_response(claude_service):
         "improved_text": "We are looking for a developer."
     }
     '''
-    result = claude_service._parse_analysis_response(mock_response)
+    result = claude_service._parse_json_response(mock_response)
 
     assert result["scores"]["inclusivity"] == 75
     assert len(result["issues"]) == 1
@@ -83,9 +89,9 @@ def test_parse_analysis_response(claude_service):
 # --- Voice DNA Tests ---
 
 
-def test_extract_voice_prompt_requests_enhanced_fields(claude_service):
+def test_extract_voice_prompt_requests_enhanced_fields():
     """Test that voice extraction prompt asks for new Voice DNA fields."""
-    prompt = claude_service._build_voice_extraction_prompt(["Example JD text here"])
+    prompt = build_voice_extraction_prompt(["Example JD text here"])
 
     # Should request new fields
     assert "tone_formality" in prompt or "formality" in prompt.lower()
@@ -94,14 +100,14 @@ def test_extract_voice_prompt_requests_enhanced_fields(claude_service):
     assert "section" in prompt.lower() or "order" in prompt.lower()
 
 
-def test_voice_extraction_prompt_includes_all_examples(claude_service):
+def test_voice_extraction_prompt_includes_all_examples():
     """Test that voice extraction prompt includes all example JDs."""
     examples = [
         "We're a startup building cool stuff.",
         "Join our mission-driven team.",
         "Competitive salary and benefits."
     ]
-    prompt = claude_service._build_voice_extraction_prompt(examples)
+    prompt = build_voice_extraction_prompt(examples)
 
     assert "cool stuff" in prompt
     assert "mission-driven" in prompt
@@ -111,9 +117,9 @@ def test_voice_extraction_prompt_includes_all_examples(claude_service):
     assert "Example 3" in prompt
 
 
-def test_voice_extraction_prompt_requests_suggested_rules(claude_service):
+def test_voice_extraction_prompt_requests_suggested_rules():
     """Test that voice extraction prompt asks for suggested_rules."""
-    prompt = claude_service._build_voice_extraction_prompt(["Sample JD"])
+    prompt = build_voice_extraction_prompt(["Sample JD"])
 
     # Should request suggested_rules in the JSON structure
     assert "suggested_rules" in prompt
@@ -127,9 +133,9 @@ def test_voice_extraction_prompt_requests_suggested_rules(claude_service):
     assert "pattern" in prompt.lower()
 
 
-def test_voice_extraction_prompt_requests_format_guidance(claude_service):
+def test_voice_extraction_prompt_requests_format_guidance():
     """Test that voice extraction prompt asks for format_guidance."""
-    prompt = claude_service._build_voice_extraction_prompt(["Sample JD"])
+    prompt = build_voice_extraction_prompt(["Sample JD"])
 
     assert "format_guidance" in prompt
     assert "structure" in prompt.lower()
@@ -138,19 +144,19 @@ def test_voice_extraction_prompt_requests_format_guidance(claude_service):
 # --- Two-Pass Improvement System Tests ---
 
 
-def test_build_improvement_prompt_includes_original_jd(claude_service):
+def test_build_improvement_prompt_includes_original_jd():
     """Improvement prompt includes the original JD text."""
     original_jd = "We are looking for a rockstar developer."
     scores = {"inclusivity": 60, "readability": 80, "structure": 70}
     issues = []
 
-    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+    prompt = build_improvement_prompt(original_jd, scores, issues)
 
     assert "rockstar developer" in prompt
     assert "ORIGINAL JOB DESCRIPTION" in prompt
 
 
-def test_build_improvement_prompt_includes_scores(claude_service):
+def test_build_improvement_prompt_includes_scores():
     """Improvement prompt includes all category scores."""
     original_jd = "Test JD"
     scores = {
@@ -163,7 +169,7 @@ def test_build_improvement_prompt_includes_scores(claude_service):
     }
     issues = []
 
-    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+    prompt = build_improvement_prompt(original_jd, scores, issues)
 
     assert "Inclusivity: 65/100" in prompt
     assert "Readability: 80/100" in prompt
@@ -172,7 +178,7 @@ def test_build_improvement_prompt_includes_scores(claude_service):
     assert "Clarity: 85/100" in prompt
 
 
-def test_build_improvement_prompt_includes_issues(claude_service):
+def test_build_improvement_prompt_includes_issues():
     """Improvement prompt includes formatted issues."""
     original_jd = "Test JD"
     scores = {"inclusivity": 60}
@@ -186,7 +192,7 @@ def test_build_improvement_prompt_includes_issues(claude_service):
         }
     ]
 
-    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+    prompt = build_improvement_prompt(original_jd, scores, issues)
 
     assert "Found problematic term" in prompt
     assert '"rockstar"' in prompt
@@ -194,25 +200,25 @@ def test_build_improvement_prompt_includes_issues(claude_service):
     assert "[WARNING]" in prompt
 
 
-def test_build_improvement_prompt_without_voice_profile(claude_service):
+def test_build_improvement_prompt_without_voice_profile():
     """Improvement prompt handles missing voice profile."""
     original_jd = "Test JD"
     scores = {"inclusivity": 75}
     issues = []
 
-    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues, voice_profile=None)
+    prompt = build_improvement_prompt(original_jd, scores, issues, voice_profile=None)
 
     assert "No voice profile specified" in prompt
     assert "N/A" in prompt  # voice_match_score should be N/A
 
 
-def test_build_improvement_prompt_with_voice_profile(claude_service, mock_voice_profile):
+def test_build_improvement_prompt_with_voice_profile(mock_voice_profile):
     """Improvement prompt includes voice profile context."""
     original_jd = "Test JD"
     scores = {"inclusivity": 75, "voice_match": 80}
     issues = []
 
-    prompt = claude_service._build_improvement_prompt(
+    prompt = build_improvement_prompt(
         original_jd, scores, issues, voice_profile=mock_voice_profile
     )
 
@@ -220,7 +226,7 @@ def test_build_improvement_prompt_with_voice_profile(claude_service, mock_voice_
     assert "Match this voice profile" in prompt
 
 
-def test_build_improvement_prompt_calculates_overall_score(claude_service):
+def test_build_improvement_prompt_calculates_overall_score():
     """Improvement prompt calculates weighted overall score."""
     original_jd = "Test JD"
     # All scores at 100 should give overall of 100
@@ -234,29 +240,29 @@ def test_build_improvement_prompt_calculates_overall_score(claude_service):
     }
     issues = []
 
-    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+    prompt = build_improvement_prompt(original_jd, scores, issues)
 
     assert "Overall Score: 100/100" in prompt
 
 
-def test_build_improvement_prompt_empty_issues(claude_service):
+def test_build_improvement_prompt_empty_issues():
     """Improvement prompt handles empty issues list gracefully."""
     original_jd = "Test JD"
     scores = {"inclusivity": 90}
     issues = []
 
-    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+    prompt = build_improvement_prompt(original_jd, scores, issues)
 
     assert "No specific issues detected" in prompt
 
 
-def test_build_improvement_prompt_includes_scoring_algorithms(claude_service):
+def test_build_improvement_prompt_includes_scoring_algorithms():
     """Improvement prompt includes scoring algorithm documentation."""
     original_jd = "Test JD"
     scores = {}
     issues = []
 
-    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+    prompt = build_improvement_prompt(original_jd, scores, issues)
 
     # Should include algorithm details
     assert "Flesch-Kincaid" in prompt
@@ -267,13 +273,13 @@ def test_build_improvement_prompt_includes_scoring_algorithms(claude_service):
     assert "INCLUSIVITY" in prompt
 
 
-def test_build_improvement_prompt_includes_no_hallucination_rule(claude_service):
+def test_build_improvement_prompt_includes_no_hallucination_rule():
     """Improvement prompt emphasizes no hallucination constraint."""
     original_jd = "Test JD"
     scores = {}
     issues = []
 
-    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+    prompt = build_improvement_prompt(original_jd, scores, issues)
 
     assert "NO HALLUCINATION" in prompt
     assert "FORBIDDEN" in prompt

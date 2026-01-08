@@ -1,11 +1,28 @@
 # backend/app/services/claude_service.py
 
+"""
+ClaudeService - Thin orchestrator for Claude API interactions.
+
+Prompt templates have been extracted to app/prompts/ for better maintainability.
+This service focuses on:
+- API client management
+- Request/response handling
+- JSON parsing and validation
+"""
+
 import json
 import re
 from typing import Optional
 from pydantic import BaseModel
 from anthropic import AsyncAnthropic
+from app.config import get_settings
 from app.models.voice_profile import VoiceProfile
+from app.prompts import (
+    build_analysis_prompt,
+    build_generation_prompt,
+    build_improvement_prompt,
+    build_voice_extraction_prompt,
+)
 
 
 class AnalyzeRequest(BaseModel):
@@ -40,338 +57,50 @@ Your expertise includes:
 
 Always provide specific, actionable feedback with concrete suggestions."""
 
-    ANALYSIS_PROMPT_TEMPLATE = """Analyze this job description and provide detailed, evidence-based feedback.
-
-{voice_context}
-
-JOB DESCRIPTION TO ANALYZE:
----
-{jd_text}
----
-
-Provide your analysis as JSON with this exact structure:
-{{
-    "scores": {{
-        "inclusivity": <0-100>,
-        "readability": <0-100>,
-        "clarity": <0-100>,
-        "voice_match": <0-100 or null if no profile>
-    }},
-    "category_evidence": {{
-        "inclusivity": {{
-            "supporting_excerpts": ["<exact quotes from JD showing good inclusive language>"],
-            "missing_elements": ["<specific inclusive elements that are missing>"],
-            "opportunity": "<the single most impactful improvement for this category>",
-            "impact_prediction": "<e.g., 'Removing gendered language could increase diverse applicants by 20%'>"
-        }},
-        "readability": {{
-            "supporting_excerpts": ["<quotes of clear, simple language>"],
-            "missing_elements": ["<jargon, complex sentences, or unclear phrasing>"],
-            "opportunity": "<main readability improvement>",
-            "impact_prediction": null
-        }},
-        "clarity": {{
-            "supporting_excerpts": ["<specific, concrete descriptions>"],
-            "missing_elements": ["<vague phrases that need more detail>"],
-            "opportunity": "<how to make role expectations clearer>",
-            "impact_prediction": null
-        }},
-        "voice_match": {{
-            "supporting_excerpts": ["<text that matches the voice profile tone>"],
-            "missing_elements": ["<aspects that don't match the profile>"],
-            "opportunity": "<how to better match the voice>",
-            "impact_prediction": null
-        }}
-    }},
-    "issues": [
-        {{
-            "severity": "critical" | "warning" | "info",
-            "category": "inclusivity" | "readability" | "structure" | "completeness" | "clarity" | "voice_match",
-            "description": "<what's wrong>",
-            "found": "<exact text that's problematic>",
-            "suggestion": "<specific replacement or fix>",
-            "impact": "<why this matters, with research-backed data if possible>"
-        }}
-    ],
-    "positives": ["<specific things done well - quote the text when possible>"]
-}}
-
-IMPORTANT GUIDELINES:
-1. Always quote specific text from the JD to support your scores in supporting_excerpts
-2. For each issue, provide the exact problematic text in "found"
-3. Impact predictions should include research-backed statistics when possible (e.g., salary transparency increases applications by 30%)
-4. Focus on changes that will measurably improve candidate response rates
-5. Be practical - prioritize high-impact, easy-to-implement changes
-6. If no voice profile is provided, set voice_match supporting_excerpts and missing_elements to empty arrays
-
-CRITICAL - ISSUE QUALITY RULES (MANDATORY - VIOLATIONS INVALIDATE YOUR RESPONSE):
-
-7. SINGLE-WORD ISSUES ARE ABSOLUTELY PROHIBITED.
-   The "found" field must ALWAYS contain 2+ words.
-
-   INVALID (will be rejected by system):
-   {{"found": "analytical", ...}} ← REJECTED
-   {{"found": "competitive", ...}} ← REJECTED
-   {{"found": "driven", ...}} ← REJECTED
-
-   VALID (multi-word phrases only):
-   {{"found": "rockstar developer", "suggestion": "experienced developer"}}
-   {{"found": "aggressive timeline", "suggestion": "ambitious timeline"}}
-   {{"found": "man-hours required", "suggestion": "person-hours required"}}
-
-8. Words like "analytical", "competitive", "driven", "ambitious", "logic", "independent",
-   "confident", "decisive" are LEGITIMATE professional qualities - NOT bias issues.
-   If the JD has gender language imbalance, mention it in category_evidence.inclusivity.opportunity,
-   NOT as individual issues.
-
-9. Every issue MUST have a SPECIFIC, COPY-PASTE-READY suggestion.
-   BAD: "consider alternatives" ← REJECTED (not actionable)
-   BAD: "Add team size information" ← REJECTED (not replacement text)
-   GOOD: "competitive salary" → "$85K-$105K + equity" (specific replacement)
-
-10. If you cannot provide a concrete replacement phrase, do NOT create an issue.
-
-11. Maximum 5 issues total. Quality over quantity.
-
-12. Issues must be for PHRASES (2+ words) that need replacement."""
-
-    GENERATION_PROMPT_TEMPLATE = """Generate a job description based on these inputs.
-
-{voice_context}
-
-INPUTS:
-- Role Title: {role_title}
-- Key Responsibilities: {responsibilities}
-- Must-Have Requirements: {requirements}
-{optional_fields}
-
-Generate a complete, compelling job description that:
-1. Opens with an engaging company/role intro
-2. Clearly explains the role and impact
-3. Lists requirements as bullet points (must-haves separate from nice-to-haves)
-4. Highlights benefits and growth opportunities
-5. Uses inclusive, bias-free language
-6. Matches the voice profile tone (if provided)
-7. Stays within 400-600 words
-
-Provide your response as JSON:
-{{
-    "generated_jd": "<the complete job description>",
-    "word_count": <number>,
-    "notes": ["<any suggestions for missing info>"]
-}}"""
-
-    # Two-pass improvement system: This prompt is used AFTER analysis to generate
-    # an improved version with full knowledge of how scoring works
-    IMPROVEMENT_PROMPT_TEMPLATE = """You are improving a job description. Your goal is to maximize its score when re-analyzed.
-
-═══════════════════════════════════════════════════════════════════════════════
-CRITICAL RULE: NO HALLUCINATION
-═══════════════════════════════════════════════════════════════════════════════
-You MUST NOT invent or add information that doesn't exist in the original.
-
-❌ FORBIDDEN - Adding invented facts:
-- Inventing salary: "Competitive salary" → "$120,000-$150,000" (WRONG - no source)
-- Inventing team size: Adding "team of 8 engineers" when not mentioned
-- Inventing benefits: Adding "401k matching" when not mentioned
-- Inventing location: Adding "Remote-first" when not specified
-
-✅ ALLOWED - Restructuring and rephrasing:
-- Better headers: "What you'll do" → "## Responsibilities"
-- Shorter sentences: Split complex sentences into simpler ones
-- Bias word replacements: "rockstar" → "expert" (use EXACT replacements below)
-- Reformat to bullets: Convert paragraphs to bullet lists where appropriate
-- Rephrase vague text: "competitive compensation" → "competitive salary package"
-
-═══════════════════════════════════════════════════════════════════════════════
-ORIGINAL JOB DESCRIPTION
-═══════════════════════════════════════════════════════════════════════════════
-{original_jd}
-
-═══════════════════════════════════════════════════════════════════════════════
-CURRENT ANALYSIS RESULTS
-═══════════════════════════════════════════════════════════════════════════════
-Overall Score: {overall_score}/100
-
-Category Scores:
-- Inclusivity: {inclusivity_score}/100 (weight: 25%)
-- Readability: {readability_score}/100 (weight: 20%)
-- Structure: {structure_score}/100 (weight: 15%)
-- Completeness: {completeness_score}/100 (weight: 15%)
-- Clarity: {clarity_score}/100 (weight: 10%)
-- Voice Match: {voice_match_score}/100 (weight: 15%)
-
-═══════════════════════════════════════════════════════════════════════════════
-ISSUES TO FIX (Priority Order)
-═══════════════════════════════════════════════════════════════════════════════
-{issues_list}
-
-═══════════════════════════════════════════════════════════════════════════════
-HOW SCORING WORKS - Use this to maximize scores
-═══════════════════════════════════════════════════════════════════════════════
-
-## READABILITY (20%) - Flesch-Kincaid Grade Level
-Target: Grade 6-8 = 100 points
-- Grade 9 = 92 pts, Grade 10 = 84 pts, Grade 12 = 68 pts, Grade 14+ = 52 pts
-
-HOW TO IMPROVE:
-- Use short sentences (under 20 words each)
-- Use simple words (1-2 syllables preferred)
-- Avoid jargon and corporate speak
-
-Word replacements that help:
-- "utilize" → "use"
-- "facilitate" → "help"
-- "leverage" → "use"
-- "synergize" → "work together"
-- "optimize" → "improve"
-- "implement" → "build" or "create"
-- "methodology" → "method"
-
-## STRUCTURE (15%) - Section Detection via Regex
-The system looks for these headers (case-insensitive):
-
-| Section | Patterns Detected | Points |
-|---------|-------------------|--------|
-| About | "about us", "company overview", "who we are" | +15 |
-| Role | "the role", "position", "responsibilities", "what you'll do" | +25 |
-| Requirements | "requirements", "qualifications", "must have", "what you'll need" | +30 |
-| Benefits | "benefits", "what we offer", "perks", "compensation" | +20 |
-| Nice-to-have | "nice to have", "bonus", "preferred", "plus" | +10 |
-
-BONUS POINTS:
-- Bullet points (-, *, •, 1.) → +10 pts
-- Headers (## or CAPS:) → +5 pts
-
-FORMAT FOR MAXIMUM STRUCTURE SCORE:
-```
-## About Us
-[company description]
-
-## The Role
-[role description]
-
-## Requirements
-- requirement 1
-- requirement 2
-
-## Nice to Have
-- bonus 1
-
-## What We Offer
-- benefit 1
-```
-
-## COMPLETENESS (15%) - Keyword Detection
-The system searches for these keywords:
-
-| Element | Detection Patterns | Points |
-|---------|-------------------|--------|
-| Salary | $, €, £, "k", "salary", "compensation", "pay range" | +30 |
-| Location | "remote", "hybrid", "on-site", "office", "based in" | +20 |
-| Requirements | "requirements", "qualifications", "must have" | +25 |
-| Benefits | "benefits", "health", "insurance", "401k", "pto", "equity" | +15 |
-| Team size | "team of X", "X-person team", "small team", "large team" | +10 |
-
-NOTE: You can score points by mentioning these topics even if vague.
-"Competitive salary" scores the salary keyword even without specific numbers.
-
-## INCLUSIVITY (25%) - Bias Word Detection
-Replace these EXACT terms with their suggested alternatives:
-
-{bias_replacement_table}
-
-IMPORTANT: Use SHORT replacements. "rockstar" → "top performer" (not "top performer with expertise")
-
-## CLARITY (10%) - AI Assessment
-- Be specific about responsibilities
-- Avoid vague phrases like "various tasks" or "other duties"
-- Quantify when possible: "manage projects" → "manage 3-5 concurrent projects"
-
-## VOICE MATCH (15%) - AI Assessment
-{voice_context}
-
-═══════════════════════════════════════════════════════════════════════════════
-YOUR TASK
-═══════════════════════════════════════════════════════════════════════════════
-Generate an IMPROVED version of the job description that:
-
-1. FIXES all issues listed above (use exact replacements for bias words)
-2. RESTRUCTURES with proper markdown headers to score Structure points
-3. SIMPLIFIES sentences for better Readability (short sentences, simple words)
-4. PRESERVES all factual information from the original (NO HALLUCINATION)
-5. MAINTAINS the original tone and voice
-
-PRIORITY ORDER for improvements:
-1. Fix bias words (immediate impact on Inclusivity)
-2. Add proper section headers (immediate impact on Structure)
-3. Convert to bullet points where appropriate (Structure bonus)
-4. Simplify complex sentences (Readability)
-5. Preserve completeness keywords (don't remove salary/location/benefits mentions)
-
-OUTPUT:
-Return ONLY the improved job description text. No preamble, no explanation.
-Do NOT include phrases like "Here's the improved version:" - just the JD text itself."""
-
     def __init__(self, api_key: str):
         self.client = AsyncAnthropic(api_key=api_key)
-        self.model = "claude-sonnet-4-5-20250929"
+        self.model = get_settings().claude_model
 
-    def _build_analysis_prompt(
-        self, jd_text: str, voice_profile: Optional[VoiceProfile] = None
-    ) -> str:
-        """Build the analysis prompt with optional voice context."""
-        voice_context = ""
-        if voice_profile:
-            voice_context = f"VOICE PROFILE TO MATCH:\n{voice_profile.to_prompt_context()}\n"
+    def _extract_json(self, text: str) -> str:
+        """Extract first complete JSON object from text using brace counting."""
+        depth = 0
+        start = None
+        in_string = False
+        escape_next = False
 
-        return self.ANALYSIS_PROMPT_TEMPLATE.format(
-            voice_context=voice_context, jd_text=jd_text
-        )
+        for i, char in enumerate(text):
+            if escape_next:
+                escape_next = False
+                continue
+            if char == '\\':
+                escape_next = True
+                continue
+            if char == '"' and not escape_next:
+                in_string = not in_string
+                continue
+            if in_string:
+                continue
 
-    def _build_generation_prompt(
-        self, request: GenerateRequest, voice_profile: Optional[VoiceProfile] = None
-    ) -> str:
-        """Build the generation prompt from request fields."""
-        voice_context = ""
-        if voice_profile:
-            voice_context = f"VOICE PROFILE:\n{voice_profile.to_prompt_context()}\n"
+            if char == '{':
+                if depth == 0:
+                    start = i
+                depth += 1
+            elif char == '}':
+                depth -= 1
+                if depth == 0 and start is not None:
+                    return text[start:i+1]
 
-        optional_parts = []
-        if request.company_description:
-            optional_parts.append(f"- Company: {request.company_description}")
-        if request.team_size:
-            optional_parts.append(f"- Team Size: {request.team_size}")
-        if request.salary_range:
-            optional_parts.append(f"- Salary: {request.salary_range}")
-        if request.location:
-            optional_parts.append(f"- Location: {request.location}")
-        if request.benefits:
-            optional_parts.append(f"- Benefits: {', '.join(request.benefits)}")
-        if request.nice_to_have:
-            optional_parts.append(f"- Nice-to-Have: {', '.join(request.nice_to_have)}")
+        return text  # Fallback to original text
 
-        optional_fields = "\n".join(optional_parts) if optional_parts else "(none provided)"
-
-        return self.GENERATION_PROMPT_TEMPLATE.format(
-            voice_context=voice_context,
-            role_title=request.role_title,
-            responsibilities="\n  - ".join(request.responsibilities),
-            requirements="\n  - ".join(request.requirements),
-            optional_fields=optional_fields,
-        )
-
-    def _parse_analysis_response(self, response_text: str) -> dict:
-        """Parse Claude's JSON response for analysis."""
+    def _parse_json_response(self, response_text: str) -> dict:
+        """Parse Claude's JSON response, handling markdown code blocks."""
         # Extract JSON from response (handle markdown code blocks)
         json_match = re.search(r'```json\s*(.*?)\s*```', response_text, re.DOTALL)
         if json_match:
             response_text = json_match.group(1)
         else:
-            # Try to find raw JSON
-            json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-            if json_match:
-                response_text = json_match.group(0)
+            # Use brace-counting algorithm to extract first complete JSON object
+            response_text = self._extract_json(response_text)
 
         try:
             return json.loads(response_text)
@@ -391,21 +120,15 @@ Do NOT include phrases like "Here's the improved version:" - just the JD text it
 
             raise ValueError(f"Failed to parse AI response as JSON: {e}. Response: {response_text[:500]}")
 
-    def _parse_generation_response(self, response_text: str) -> dict:
-        """Parse Claude's JSON response for generation."""
-        return self._parse_analysis_response(response_text)
-
     def _extract_response_text(self, message) -> str:
         """Extract text content from Claude API response, with validation."""
         if not message.content or not hasattr(message.content[0], 'text'):
             raise ValueError("Unexpected response format from Claude API: empty or invalid content")
         return message.content[0].text
 
-    async def analyze(
-        self, request: AnalyzeRequest
-    ) -> dict:
+    async def analyze(self, request: AnalyzeRequest) -> dict:
         """Analyze a job description using Claude."""
-        prompt = self._build_analysis_prompt(request.jd_text, request.voice_profile)
+        prompt = build_analysis_prompt(request.jd_text, request.voice_profile)
 
         message = await self.client.messages.create(
             model=self.model,
@@ -420,13 +143,13 @@ Do NOT include phrases like "Here's the improved version:" - just the JD text it
             raise ValueError("Analysis response was truncated. The job description may be too long.")
 
         response_text = self._extract_response_text(message)
-        return self._parse_analysis_response(response_text)
+        return self._parse_json_response(response_text)
 
     async def generate(
         self, request: GenerateRequest, voice_profile: Optional[VoiceProfile] = None
     ) -> dict:
         """Generate a job description using Claude."""
-        prompt = self._build_generation_prompt(request, voice_profile)
+        prompt = build_generation_prompt(request, voice_profile)
 
         message = await self.client.messages.create(
             model=self.model,
@@ -436,69 +159,7 @@ Do NOT include phrases like "Here's the improved version:" - just the JD text it
         )
 
         response_text = self._extract_response_text(message)
-        return self._parse_generation_response(response_text)
-
-    def _build_improvement_prompt(
-        self,
-        original_jd: str,
-        scores: dict,
-        issues: list[dict],
-        voice_profile: Optional[VoiceProfile] = None,
-    ) -> str:
-        """Build the improvement prompt with full scoring context."""
-        # Import centralized constants (no more circular dependency issue)
-        from app.services.field_mappings import BIAS_REPLACEMENTS, CATEGORY_WEIGHTS
-
-        # Calculate overall score (weighted average)
-        overall_score = sum(
-            scores.get(cat, 75) * weight for cat, weight in CATEGORY_WEIGHTS.items()
-        )
-
-        # Format issues list
-        if issues:
-            issues_lines = []
-            for i, issue in enumerate(issues, 1):
-                severity = issue.get("severity", "info").upper()
-                category = issue.get("category", "unknown")
-                description = issue.get("description", "")
-                found = issue.get("found", "")
-                suggestion = issue.get("suggestion", "")
-
-                issue_text = f"{i}. [{severity}] {category}: {description}"
-                if found:
-                    issue_text += f"\n   Found: \"{found}\""
-                if suggestion:
-                    issue_text += f"\n   Fix: {suggestion}"
-                issues_lines.append(issue_text)
-            issues_list = "\n".join(issues_lines)
-        else:
-            issues_list = "No specific issues detected. Focus on structure and readability improvements."
-
-        # Build voice context
-        if voice_profile:
-            voice_context = f"Match this voice profile:\n{voice_profile.to_prompt_context()}"
-        else:
-            voice_context = "No voice profile specified. Maintain a professional, inclusive tone."
-
-        # Generate bias replacement table dynamically from single source of truth
-        bias_table_rows = ["| Problematic Term | Replace With |", "|------------------|--------------|"]
-        for term, replacement in BIAS_REPLACEMENTS.items():
-            bias_table_rows.append(f"| {term} | {replacement} |")
-        bias_replacement_table = "\n".join(bias_table_rows)
-
-        return self.IMPROVEMENT_PROMPT_TEMPLATE.format(
-            original_jd=original_jd,
-            overall_score=round(overall_score),
-            inclusivity_score=scores.get("inclusivity", 75),
-            readability_score=scores.get("readability", 75),
-            structure_score=scores.get("structure", 75),
-            completeness_score=scores.get("completeness", 75),
-            clarity_score=scores.get("clarity", 75),
-            voice_match_score=scores.get("voice_match", 75) if voice_profile else "N/A",
-            issues_list=issues_list,
-            voice_context=voice_context,
-            bias_replacement_table=bias_replacement_table,
-        )
+        return self._parse_json_response(response_text)
 
     async def generate_improvement(
         self,
@@ -517,7 +178,7 @@ Do NOT include phrases like "Here's the improved version:" - just the JD text it
 
         Returns the improved JD text only.
         """
-        prompt = self._build_improvement_prompt(
+        prompt = build_improvement_prompt(
             original_jd=original_jd,
             scores=scores,
             issues=issues,
@@ -550,64 +211,9 @@ Do NOT include phrases like "Here's the improved version:" - just the JD text it
 
         return response_text.strip()
 
-    VOICE_EXTRACTION_PROMPT = """Analyze these job descriptions and extract the writing voice/style.
-
-Example JDs to analyze:
-{examples}
-
-Extract the voice profile as JSON with this structure:
-{{
-    "tone": "formal" | "professional" | "friendly" | "casual" | "startup_casual",
-    "tone_formality": <1-5, where 1=very formal, 5=very casual>,
-    "tone_description": "<2-3 word description like 'Professional but warm' or 'Energetic and direct'>",
-    "address_style": "direct_you" | "third_person" | "we_looking",
-    "sentence_style": "short_punchy" | "balanced" | "detailed",
-    "structure_analysis": {{
-        "leads_with_benefits": <true/false>,
-        "typical_section_order": ["<section1>", "<section2>", ...],
-        "includes_salary": <true/false>
-    }},
-    "vocabulary": {{
-        "commonly_used": ["<word1>", "<word2>", ...],
-        "notably_avoided": ["<word1>", "<word2>", ...]
-    }},
-    "brand_signals": {{
-        "values": ["<value1>", "<value2>", ...],
-        "personality": "<brief description of brand personality>"
-    }},
-    "suggested_rules": [
-        {{
-            "text": "<natural language rule like 'Never include salary information'>",
-            "rule_type": "exclude" | "include" | "format" | "order" | "limit" | "custom",
-            "target": "<what it applies to, e.g., 'salary', 'requirements'>",
-            "value": "<additional value if applicable, e.g., '5' for max items>",
-            "confidence": <0.0-1.0>,
-            "evidence": "<brief explanation like 'Observed in 0/3 examples'>"
-        }}
-    ],
-    "format_guidance": "<optional: describe the consistent structure pattern if one exists>",
-    "summary": "<2-3 sentence summary of this voice>"
-}}
-
-When analyzing for suggested_rules, look for:
-- Sections consistently missing (e.g., salary never mentioned → suggest "Never include salary information")
-- Format patterns (e.g., requirements always as bullets → suggest "Use bullet points for requirements")
-- Section order patterns (e.g., benefits always first → suggest "Lead with benefits section")
-- Length limits (e.g., requirements always 5-7 items → suggest "Maximum 7 requirement bullet points")
-- Content that's always included (e.g., remote policy always mentioned → suggest "Always include remote work policy")
-
-Focus on patterns that appear consistently across ALL examples. Be specific."""
-
-    def _build_voice_extraction_prompt(self, example_jds: list[str]) -> str:
-        """Build prompt for voice extraction."""
-        examples_text = "\n\n---\n\n".join(
-            f"Example {i+1}:\n{jd}" for i, jd in enumerate(example_jds)
-        )
-        return self.VOICE_EXTRACTION_PROMPT.format(examples=examples_text)
-
     async def extract_voice_profile(self, example_jds: list[str]) -> dict:
         """Extract voice profile characteristics from example JDs."""
-        prompt = self._build_voice_extraction_prompt(example_jds)
+        prompt = build_voice_extraction_prompt(example_jds)
 
         message = await self.client.messages.create(
             model=self.model,

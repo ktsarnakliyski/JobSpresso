@@ -1,5 +1,6 @@
 # backend/app/services/assessment_service.py
 
+import logging
 import re
 from typing import Optional
 from app.models.assessment import (
@@ -28,6 +29,8 @@ from app.services.field_mappings import (
     get_fields_for_keywords,
     issue_mentions_excluded_field,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class AssessmentService:
@@ -434,6 +437,10 @@ class AssessmentService:
                 voice_profile=voice_profile,
             )
         except Exception:
+            logger.exception(
+                "Improvement generation failed for JD (length=%d chars), using original text",
+                len(jd_text)
+            )
             # Fall back to original text if improvement generation fails
             improved_text = jd_text
 

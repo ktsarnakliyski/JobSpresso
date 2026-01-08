@@ -8,12 +8,13 @@ from app.models.assessment import (
     AssessmentResult,
     ScoreInterpretation,
 )
+from app.services.field_mappings import CATEGORY_WEIGHTS
 
 
 def test_assessment_category_weights_sum_to_100():
-    """All category weights should sum to 100."""
-    total = sum(cat.weight for cat in AssessmentCategory)
-    assert total == 100
+    """All category weights should sum to 1.0 (100%)."""
+    total = sum(CATEGORY_WEIGHTS.values())
+    assert abs(total - 1.0) < 0.001, f"Weights should sum to 1.0, got {total}"
 
 
 def test_issue_severity_ordering():

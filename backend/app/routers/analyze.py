@@ -1,14 +1,17 @@
 # backend/app/routers/analyze.py
 
+import logging
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 
 from app.config import get_settings
 from app.models.assessment import AssessmentResult, AssessmentCategory
 from app.models.voice_profile import VoiceProfile
 from app.services.assessment_service import AssessmentService
+from app.rate_limit import limiter
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["analyze"])
 
@@ -65,7 +68,9 @@ class AnalyzeResponse(BaseModel):
 
 
 @router.post("/analyze", response_model=AnalyzeResponse)
+@limiter.limit("10/minute")
 async def analyze_jd(
+    request: Request,
     body: AnalyzeRequestBody,
     service: AssessmentService = Depends(get_assessment_service),
 ):
@@ -131,5 +136,9 @@ async def analyze_jd(
             question_coverage_percent=result.question_coverage_percent,
             estimated_application_boost=result.estimated_application_boost,
         )
+    except ValueError as e:
+        # Validation errors - safe to expose
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Analysis failed")
+        raise HTTPException(status_code=500, detail="Analysis failed. Please try again.")

@@ -1,13 +1,16 @@
 # backend/app/routers/generate.py
 
+import logging
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from pydantic import BaseModel
 
 from app.config import get_settings
 from app.models.voice_profile import VoiceProfile
 from app.services.claude_service import ClaudeService, GenerateRequest
+from app.rate_limit import limiter
 
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api", tags=["generate"])
 
@@ -37,7 +40,9 @@ class GenerateResponse(BaseModel):
 
 
 @router.post("/generate", response_model=GenerateResponse)
+@limiter.limit("10/minute")
 async def generate_jd(
+    request: Request,
     body: GenerateRequestBody,
     service: ClaudeService = Depends(get_claude_service),
 ):
@@ -45,7 +50,7 @@ async def generate_jd(
     Generate a job description from provided inputs.
     """
     try:
-        request = GenerateRequest(
+        request_data = GenerateRequest(
             role_title=body.role_title,
             responsibilities=body.responsibilities,
             requirements=body.requirements,
@@ -57,12 +62,16 @@ async def generate_jd(
             nice_to_have=body.nice_to_have,
         )
 
-        result = await service.generate(request, body.voice_profile)
+        result = await service.generate(request_data, body.voice_profile)
 
         return GenerateResponse(
             generated_jd=result.get("generated_jd", ""),
             word_count=result.get("word_count", 0),
             notes=result.get("notes", []),
         )
+    except ValueError as e:
+        # Validation errors - safe to expose
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Generation failed")
+        raise HTTPException(status_code=500, detail="Generation failed. Please try again.")

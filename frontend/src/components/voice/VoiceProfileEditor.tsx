@@ -3,21 +3,24 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { Card, Button, TextArea, Select, BackButton } from '@/components/ui';
+import { Card, Button, TextArea, BackButton } from '@/components/ui';
 import { cn } from '@/lib/utils';
 import {
   VoiceProfile,
   VoiceExtractionResult,
   ProfileRule,
-  ADDRESS_OPTIONS,
-  SENTENCE_OPTIONS,
-  FORMALITY_LABELS,
   ToneStyle,
   AddressStyle,
   SentenceStyle,
   CreationMethod,
 } from '@/types/voice-profile';
 import { RulesBuilder } from './RulesBuilder';
+import {
+  ToneSection,
+  StyleSection,
+  StructureSection,
+  VocabularySection,
+} from './editor';
 
 // Helper to parse comma-separated strings into arrays
 const parseCommaSeparated = (str: string): string[] =>
@@ -163,110 +166,36 @@ export function VoiceProfileEditor({
         </div>
 
         {/* Tone Section */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-navy-800 uppercase tracking-wide">Tone</h3>
-
-          <div>
-            <label className="block text-sm font-medium text-navy-700 mb-3">
-              Formality: {FORMALITY_LABELS[toneFormality] || 'Balanced'}
-            </label>
-            <input
-              type="range"
-              min={1}
-              max={5}
-              value={toneFormality}
-              onChange={(e) => setToneFormality(Number(e.target.value))}
-              className="w-full accent-navy-600"
-            />
-            <div className="flex justify-between text-xs text-navy-400 mt-1">
-              <span>Formal</span>
-              <span>Casual</span>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-navy-700 mb-2">
-              Tone Description
-            </label>
-            <input
-              type="text"
-              value={toneDescription}
-              onChange={(e) => setToneDescription(e.target.value)}
-              placeholder="e.g., Professional but warm"
-              className={inputClasses}
-            />
-          </div>
-        </div>
+        <ToneSection
+          toneFormality={toneFormality}
+          toneDescription={toneDescription}
+          onToneFormalityChange={setToneFormality}
+          onToneDescriptionChange={setToneDescription}
+        />
 
         {/* Style Section */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-navy-800 uppercase tracking-wide">Style</h3>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <Select
-              label="Address Style"
-              options={ADDRESS_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-              value={addressStyle}
-              onChange={(e) => setAddressStyle(e.target.value as AddressStyle)}
-            />
-            <Select
-              label="Sentence Style"
-              options={SENTENCE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
-              value={sentenceStyle}
-              onChange={(e) => setSentenceStyle(e.target.value as SentenceStyle)}
-            />
-          </div>
-        </div>
+        <StyleSection
+          addressStyle={addressStyle}
+          sentenceStyle={sentenceStyle}
+          onAddressStyleChange={setAddressStyle}
+          onSentenceStyleChange={setSentenceStyle}
+        />
 
         {/* Structure Section */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-navy-800 uppercase tracking-wide">
-            Structure
-          </h3>
-
-          <div className="space-y-3">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={leadWithBenefits}
-                onChange={(e) => setLeadWithBenefits(e.target.checked)}
-                className="w-4 h-4 rounded border-navy-300 text-navy-600 focus:ring-navy-500"
-              />
-              <span className="text-navy-700">Lead with benefits and impact</span>
-            </label>
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={includeSalary}
-                onChange={(e) => setIncludeSalary(e.target.checked)}
-                className="w-4 h-4 rounded border-navy-300 text-navy-600 focus:ring-navy-500"
-              />
-              <span className="text-navy-700">Include salary prominently</span>
-            </label>
-          </div>
-        </div>
+        <StructureSection
+          leadWithBenefits={leadWithBenefits}
+          includeSalary={includeSalary}
+          onLeadWithBenefitsChange={setLeadWithBenefits}
+          onIncludeSalaryChange={setIncludeSalary}
+        />
 
         {/* Vocabulary Section */}
-        <div className="space-y-4">
-          <h3 className="text-sm font-semibold text-navy-800 uppercase tracking-wide">
-            Vocabulary
-          </h3>
-
-          <TextArea
-            label="Words to Prefer"
-            value={wordsToPrefer}
-            onChange={(e) => setWordsToPrefer(e.target.value)}
-            placeholder="team, growth, impact, collaborate (comma-separated)"
-            rows={2}
-          />
-          <TextArea
-            label="Words to Avoid"
-            value={wordsToAvoid}
-            onChange={(e) => setWordsToAvoid(e.target.value)}
-            placeholder="ninja, rockstar, guru, synergy (comma-separated)"
-            rows={2}
-          />
-        </div>
+        <VocabularySection
+          wordsToPrefer={wordsToPrefer}
+          wordsToAvoid={wordsToAvoid}
+          onWordsToPreferChange={setWordsToPrefer}
+          onWordsToAvoidChange={setWordsToAvoid}
+        />
 
         {/* Brand Values */}
         <div>

@@ -161,15 +161,19 @@ def calculate_structure_score(text: str) -> float:
 
 def detect_bias_words(text: str) -> dict[str, list[str]]:
     """
-    Detect potentially biased words in text.
-    Returns dict of bias_type -> list of found words.
+    Detect potentially biased words in text using word boundary matching.
+    Returns dict of bias_type -> list of found words/phrases.
     """
     text_lower = text.lower()
-    words = set(re.findall(r'\b\w+\b', text_lower))
 
-    found = {}
+    found: dict[str, list[str]] = {}
     for bias_type, word_list in BIAS_WORD_LISTS.items():
-        matches = [w for w in word_list if w in words or w in text_lower]
+        matches = []
+        for term in word_list:
+            # Use word boundaries to match whole terms (including multi-word phrases)
+            pattern = r'\b' + re.escape(term) + r'\b'
+            if re.search(pattern, text_lower):
+                matches.append(term)
         if matches:
             found[bias_type] = matches
 
