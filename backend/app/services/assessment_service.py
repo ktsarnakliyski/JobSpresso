@@ -245,22 +245,11 @@ class AssessmentService:
 
     def _convert_ai_issues(self, ai_issues: list[dict]) -> list[Issue]:
         """Convert AI response issues to Issue models."""
+        from app.services.field_mappings import get_severity_map, get_category_map
+
         issues = []
-
-        severity_map = {
-            "critical": IssueSeverity.CRITICAL,
-            "warning": IssueSeverity.WARNING,
-            "info": IssueSeverity.INFO,
-        }
-
-        category_map = {
-            "inclusivity": AssessmentCategory.INCLUSIVITY,
-            "readability": AssessmentCategory.READABILITY,
-            "structure": AssessmentCategory.STRUCTURE,
-            "completeness": AssessmentCategory.COMPLETENESS,
-            "clarity": AssessmentCategory.CLARITY,
-            "voice_match": AssessmentCategory.VOICE_MATCH,
-        }
+        severity_map = get_severity_map()
+        category_map = get_category_map()
 
         for ai_issue in ai_issues:
             issues.append(Issue(

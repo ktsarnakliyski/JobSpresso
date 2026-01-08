@@ -62,7 +62,22 @@ Always provide specific, actionable feedback with concrete suggestions."""
         self.model = get_settings().claude_model
 
     def _extract_json(self, text: str) -> str:
-        """Extract first complete JSON object from text using brace counting."""
+        """Extract first complete JSON object from text using brace counting.
+
+        This method finds the first complete, balanced JSON object in the text.
+        It handles:
+        - Nested objects and arrays
+        - Strings containing braces (properly quoted)
+        - Simple escape sequences (\\, \")
+
+        Limitations:
+        - Double-escaped sequences like \\\\ followed by " may cause incorrect parsing
+        - Unicode escapes (\\uXXXX) are not specially handled
+        - Multiple consecutive JSON objects will only return the first one
+
+        For most Claude API responses, this is sufficient. If issues arise,
+        prefer using markdown code blocks (```json ... ```) which are parsed first.
+        """
         depth = 0
         start = None
         in_string = False

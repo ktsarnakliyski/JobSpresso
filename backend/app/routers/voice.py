@@ -3,7 +3,7 @@
 import logging
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 from app.config import get_settings
 from app.services.claude_service import ClaudeService
@@ -54,6 +54,23 @@ class SuggestedRuleResponse(BaseModel):
     value: Optional[str] = None
     confidence: float = 0.8
     evidence: str = ""
+
+
+class RawClaudeVoiceResponse(BaseModel):
+    """Model for parsing raw Claude voice extraction response with defaults."""
+    tone: str = "professional"
+    tone_formality: int = 3
+    tone_description: str = "Professional"
+    address_style: str = "direct_you"
+    sentence_style: str = "balanced"
+    structure_analysis: StructureAnalysis = StructureAnalysis()
+    vocabulary: VocabularyAnalysis = VocabularyAnalysis()
+    brand_signals: BrandSignals = BrandSignals()
+    suggested_rules: list[dict] = []
+    format_guidance: Optional[str] = None
+    summary: str = ""
+
+    model_config = ConfigDict(extra="ignore")  # Ignore unexpected fields from Claude
 
 
 class ExtractVoiceResponse(BaseModel):
@@ -108,34 +125,13 @@ async def extract_voice_profile(
     try:
         result = await service.extract_voice_profile(body.example_jds)
 
-        # Parse structure analysis
-        struct = result.get("structure_analysis", {})
-        structure_analysis = StructureAnalysis(
-            leads_with_benefits=struct.get("leads_with_benefits", False),
-            typical_section_order=struct.get("typical_section_order", []),
-            includes_salary=struct.get("includes_salary", False),
-        )
+        # Parse raw response with Pydantic model (handles defaults automatically)
+        parsed = RawClaudeVoiceResponse.model_validate(result)
 
-        # Parse vocabulary
-        vocab = result.get("vocabulary", {})
-        vocabulary = VocabularyAnalysis(
-            commonly_used=vocab.get("commonly_used", []),
-            notably_avoided=vocab.get("notably_avoided", []),
-        )
-
-        # Parse brand signals
-        brand = result.get("brand_signals", {})
-        brand_signals = BrandSignals(
-            values=brand.get("values", []),
-            personality=brand.get("personality", ""),
-        )
-
-        # Parse suggested rules
-        raw_rules = result.get("suggested_rules", [])
+        # Parse suggested rules with confidence clamping
         suggested_rules = []
-        for rule in raw_rules:
+        for rule in parsed.suggested_rules:
             if isinstance(rule, dict) and rule.get("text"):
-                # Safely parse confidence with fallback
                 try:
                     conf = float(rule.get("confidence", 0.8))
                 except (ValueError, TypeError):
@@ -150,35 +146,25 @@ async def extract_voice_profile(
                 ))
 
         return ExtractVoiceResponse(
-            tone=result.get("tone", "professional"),
-            tone_formality=min(5, max(1, result.get("tone_formality", 3))),
-            tone_description=result.get("tone_description", "Professional"),
-            address_style=result.get("address_style", "direct_you"),
-            sentence_style=result.get("sentence_style", "balanced"),
-            structure_analysis=structure_analysis,
-            vocabulary=vocabulary,
-            brand_signals=brand_signals,
+            tone=parsed.tone,
+            tone_formality=min(5, max(1, parsed.tone_formality)),
+            tone_description=parsed.tone_description,
+            address_style=parsed.address_style,
+            sentence_style=parsed.sentence_style,
+            structure_analysis=parsed.structure_analysis,
+            vocabulary=parsed.vocabulary,
+            brand_signals=parsed.brand_signals,
             suggested_rules=suggested_rules,
-            format_guidance=result.get("format_guidance"),
-            summary=result.get("summary", ""),
+            format_guidance=parsed.format_guidance,
+            summary=parsed.summary,
             # Legacy fields
-            words_commonly_used=vocabulary.commonly_used,
-            words_avoided=vocabulary.notably_avoided,
+            words_commonly_used=parsed.vocabulary.commonly_used,
+            words_avoided=parsed.vocabulary.notably_avoided,
             structure_preference="mixed",
         )
     except ValueError as e:
         # Validation errors - safe to expose
         raise HTTPException(status_code=400, detail=str(e))
-    except (TypeError, KeyError) as e:
-        logger.exception("Failed to process extraction result")
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to process extraction result. Please try again."
-        )
     except Exception as e:
-        # Log unexpected errors but don't expose internal details
-        logger.exception("Unexpected error in voice extraction")
-        raise HTTPException(
-            status_code=500,
-            detail="Internal server error during voice extraction"
-        )
+        logger.exception("Voice extraction failed")
+        raise HTTPException(status_code=500, detail="Voice extraction failed. Please try again.")
