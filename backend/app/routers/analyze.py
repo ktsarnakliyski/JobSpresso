@@ -3,7 +3,7 @@
 import logging
 from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.config import get_settings
 from app.models.assessment import AssessmentResult, AssessmentCategory
@@ -22,7 +22,7 @@ def get_assessment_service() -> AssessmentService:
 
 
 class AnalyzeRequestBody(BaseModel):
-    jd_text: str
+    jd_text: str = Field(..., min_length=50, max_length=50000)
     voice_profile: Optional[VoiceProfile] = None
 
 

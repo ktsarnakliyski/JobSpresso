@@ -22,6 +22,23 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# Request body size limit middleware (prevents DoS and cost attacks)
+class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, max_size: int = 500_000):  # 500KB default
+        super().__init__(app)
+        self.max_size = max_size
+
+    async def dispatch(self, request: Request, call_next):
+        if request.headers.get("content-length"):
+            content_length = int(request.headers["content-length"])
+            if content_length > self.max_size:
+                return JSONResponse(
+                    status_code=413,
+                    content={"detail": f"Request too large. Maximum size: {self.max_size // 1000}KB"}
+                )
+        return await call_next(request)
+
+
 app = FastAPI(
     title=settings.app_name,
     debug=settings.debug,
@@ -52,6 +69,9 @@ app.add_middleware(
 
 # Add security headers middleware
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Add request size limit middleware (500KB max)
+app.add_middleware(RequestSizeLimitMiddleware, max_size=500_000)
 
 # Include routers
 app.include_router(analyze.router)
