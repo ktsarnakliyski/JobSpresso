@@ -21,6 +21,11 @@ from app.services.scoring import (
 )
 from app.services.claude_service import ClaudeService, AnalyzeRequest
 from app.services.question_analyzer import QuestionCoverageAnalyzer
+from app.services.field_mappings import (
+    FIELD_KEYWORDS,
+    get_fields_for_keywords,
+    issue_mentions_excluded_field,
+)
 
 
 # Replacement suggestions for bias words (synced with BIAS_WORD_LISTS in scoring.py)
@@ -61,12 +66,34 @@ class AssessmentService:
         self.claude_service = ClaudeService(api_key=claude_api_key)
         self.question_analyzer = QuestionCoverageAnalyzer()
 
+    # Patterns that indicate exclusion intent in rule text
+    EXCLUSION_PATTERNS = [
+        "never include",
+        "don't include",
+        "do not include",
+        "exclude",
+        "skip",
+        "omit",
+        "no salary",
+        "no location",
+        "no benefits",
+        "no team",
+        "without salary",
+        "without location",
+        "without benefits",
+    ]
+
     def _get_excluded_fields_from_profile(
         self, voice_profile: Optional[VoiceProfile]
     ) -> set[str]:
         """
         Extract field names that should be excluded from completeness checks
-        based on voice profile EXCLUDE rules.
+        based on voice profile rules.
+
+        Detects exclusions from:
+        1. Explicit EXCLUDE rule_type
+        2. Rule text containing exclusion intent ("never", "don't", "no", "skip")
+           combined with topic keywords
 
         Returns set of field names like {'salary', 'benefits', 'team_size'}
         """
@@ -75,31 +102,30 @@ class AssessmentService:
 
         excluded: set[str] = set()
 
-        # Map rule targets/keywords to completeness field names
-        target_to_fields = {
-            "salary": ["salary"],
-            "compensation": ["salary"],
-            "pay": ["salary"],
-            "location": ["location"],
-            "remote": ["location"],
-            "benefits": ["benefits"],
-            "perks": ["benefits"],
-            "team": ["team_size"],
-            "team_size": ["team_size"],
-            "requirements": ["requirements_listed"],
-        }
-
         for rule in voice_profile.rules:
-            if rule.active and rule.rule_type == RuleType.EXCLUDE:
-                # Check by explicit target
-                if rule.target and rule.target.lower() in target_to_fields:
-                    excluded.update(target_to_fields[rule.target.lower()])
+            if not rule.active:
+                continue
 
-                # Also check rule text for keywords
-                rule_lower = rule.text.lower()
-                for keyword, fields in target_to_fields.items():
-                    if keyword in rule_lower:
-                        excluded.update(fields)
+            rule_lower = rule.text.lower()
+
+            # Method 1: Explicit EXCLUDE rule_type
+            if rule.rule_type == RuleType.EXCLUDE:
+                # Check by explicit target (use shared mapping)
+                if rule.target:
+                    excluded.update(get_fields_for_keywords(rule.target))
+
+                # Check rule text for topic keywords
+                excluded.update(get_fields_for_keywords(rule_lower))
+
+            # Method 2: Detect exclusion intent from 'custom' rules only
+            # E.g., "Never include salary information" → excludes salary
+            # Only applies to CUSTOM rules, not INCLUDE/FORMAT/ORDER/LIMIT
+            elif rule.rule_type == RuleType.CUSTOM:
+                has_exclusion_intent = any(
+                    pattern in rule_lower for pattern in self.EXCLUSION_PATTERNS
+                )
+                if has_exclusion_intent:
+                    excluded.update(get_fields_for_keywords(rule_lower))
 
         return excluded
 
@@ -212,6 +238,29 @@ class AssessmentService:
         issues.extend(self._detect_completeness_issues(text, excluded_fields))
         issues.extend(self._detect_readability_issues(text))
         return issues
+
+    def _issue_conflicts_with_exclusions(
+        self, issue: Issue, excluded_fields: set[str]
+    ) -> bool:
+        """
+        Check if an AI-generated issue conflicts with voice profile exclusions.
+
+        For example, if the user has "Never include salary information" as a rule,
+        we should not show issues suggesting to add salary information.
+
+        Args:
+            issue: The Issue object to check
+            excluded_fields: Set of field names excluded by voice profile rules
+
+        Returns:
+            True if the issue conflicts with exclusions and should be filtered out
+        """
+        return issue_mentions_excluded_field(
+            description=issue.description,
+            found=issue.found,
+            suggestion=issue.suggestion,
+            excluded_fields=excluded_fields,
+        )
 
     def _merge_scores(
         self,
@@ -362,12 +411,23 @@ class AssessmentService:
             final_scores, ai_evidence, rule_scores
         )
 
-        # Combine issues (deduplicate by description)
+        # Combine issues (deduplicate by description and filter by excluded fields)
         ai_issues = self._convert_ai_issues(ai_response.get("issues", []))
         seen_descriptions = {i.description for i in rule_issues}
-        all_issues = rule_issues + [
-            i for i in ai_issues if i.description not in seen_descriptions
-        ]
+
+        # Filter AI issues that conflict with voice profile exclusions
+        filtered_ai_issues = []
+        for issue in ai_issues:
+            if issue.description in seen_descriptions:
+                continue  # Already in rule issues, skip duplicate
+
+            # Check if this issue is about an excluded topic
+            if self._issue_conflicts_with_exclusions(issue, excluded_fields):
+                continue  # Skip issues about topics the user explicitly excluded
+
+            filtered_ai_issues.append(issue)
+
+        all_issues = rule_issues + filtered_ai_issues
 
         # Sort issues by severity
         all_issues.sort(key=lambda i: i.severity.value, reverse=True)
@@ -378,11 +438,50 @@ class AssessmentService:
             question_coverage_raw, bias_issue_count
         )
 
+        # === TWO-PASS IMPROVEMENT SYSTEM ===
+        # Pass 2: Generate improved version with full scoring context
+        # This gives Claude knowledge of how scoring works so improvements actually score higher
+
+        # Build scores dict for improvement prompt
+        scores_for_improvement = {
+            "inclusivity": final_scores.get(AssessmentCategory.INCLUSIVITY, 75),
+            "readability": final_scores.get(AssessmentCategory.READABILITY, 75),
+            "structure": final_scores.get(AssessmentCategory.STRUCTURE, 75),
+            "completeness": final_scores.get(AssessmentCategory.COMPLETENESS, 75),
+            "clarity": final_scores.get(AssessmentCategory.CLARITY, 75),
+            "voice_match": final_scores.get(AssessmentCategory.VOICE_MATCH, 75),
+        }
+
+        # Format issues for improvement prompt
+        issues_for_improvement = [
+            {
+                "severity": issue.severity.name.lower(),
+                "category": issue.category.value,
+                "description": issue.description,
+                "found": issue.found,
+                "suggestion": issue.suggestion,
+            }
+            for issue in all_issues
+        ]
+
+        # Generate improved version with full context
+        # Wrap in try/except so Pass 1 results aren't lost if improvement fails
+        try:
+            improved_text = await self.claude_service.generate_improvement(
+                original_jd=jd_text,
+                scores=scores_for_improvement,
+                issues=issues_for_improvement,
+                voice_profile=voice_profile,
+            )
+        except Exception:
+            # Fall back to original text if improvement generation fails
+            improved_text = jd_text
+
         return AssessmentResult(
             category_scores=final_scores,
             issues=all_issues,
             positives=ai_response.get("positives", []),
-            improved_text=ai_response.get("improved_text", jd_text),
+            improved_text=improved_text,
             category_evidence=category_evidence,
             question_coverage=question_coverage,
             questions_answered=questions_answered,

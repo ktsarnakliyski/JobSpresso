@@ -41,6 +41,43 @@ BIAS_WORD_LISTS = {
 }
 
 
+def _preprocess_for_readability(text: str) -> str:
+    """
+    Preprocess text for readability analysis.
+
+    Job descriptions use bullet points extensively, but the Flesch-Kincaid
+    algorithm expects proper sentences. Without preprocessing, bullets like:
+        - Write code using Python
+        - Build new features
+    Are treated as one long sentence, causing inflated grade levels.
+
+    This adds periods to bullet points that don't end with punctuation,
+    ensuring proper sentence detection.
+    """
+    lines = text.split('\n')
+    processed = []
+
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            processed.append(line)
+            continue
+
+        # Check if it's a bullet point (starts with -, *, •, numbers, letters)
+        is_bullet = bool(re.match(r'^[\-\*\•]\s|^\d+[\.\)]\s|^[a-z]\)\s', stripped))
+
+        # Check if line ends with sentence-ending punctuation
+        ends_with_punct = bool(re.search(r'[.!?:;]$', stripped))
+
+        if is_bullet and not ends_with_punct:
+            # Add a period to make it a proper sentence for analysis
+            line = line.rstrip() + '.'
+
+        processed.append(line)
+
+    return '\n'.join(processed)
+
+
 def calculate_readability_score(text: str) -> float:
     """
     Calculate readability score (0-100).
@@ -50,8 +87,11 @@ def calculate_readability_score(text: str) -> float:
     if not text.strip():
         return 0
 
+    # Preprocess to handle bullet points (critical for JDs)
+    processed_text = _preprocess_for_readability(text)
+
     # Get Flesch-Kincaid Grade Level (lower = easier to read)
-    grade_level = textstat.flesch_kincaid_grade(text)
+    grade_level = textstat.flesch_kincaid_grade(processed_text)
 
     # Target is 6-8 grade level
     # Score 100 for grade 6-8, decrease for higher/lower
@@ -177,7 +217,7 @@ def check_completeness(text: str) -> dict[str, bool]:
             text_lower
         )),
         "location": bool(re.search(
-            r'remote|hybrid|on-?site|office|location|based\s+in|\bcity\b',
+            r'remote|hybrid|on-?site|office|location|based\s+in|\bcity\b|work\s+from\s+(home|anywhere)|wfh|in[- ]?person|distributed',
             text_lower
         )),
         "team_size": bool(re.search(
