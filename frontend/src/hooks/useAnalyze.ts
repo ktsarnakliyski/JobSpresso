@@ -58,33 +58,23 @@ interface AnalyzeResponse {
   estimated_application_boost?: number;
 }
 
-// Type guards for runtime validation
-const VALID_CATEGORIES: AssessmentCategory[] = [
-  'inclusivity', 'readability', 'structure',
-  'completeness', 'clarity', 'voice_match'
-];
-
-function isValidCategory(value: string): value is AssessmentCategory {
-  return VALID_CATEGORIES.includes(value as AssessmentCategory);
+// Generic type guard factory for runtime validation
+function createValidator<T extends string>(validValues: readonly T[]) {
+  return (value: string): value is T => validValues.includes(value as T);
 }
 
-const VALID_SEVERITIES = ['critical', 'warning', 'info'];
+// Type guards using the generic factory
+const VALID_CATEGORIES = ['inclusivity', 'readability', 'structure', 'completeness', 'clarity', 'voice_match'] as const;
+const isValidCategory = createValidator<AssessmentCategory>(VALID_CATEGORIES);
 
-function isValidSeverity(value: string): value is Issue['severity'] {
-  return VALID_SEVERITIES.includes(value);
-}
+const VALID_SEVERITIES = ['critical', 'warning', 'info'] as const;
+const isValidSeverity = createValidator<Issue['severity']>(VALID_SEVERITIES);
 
-const VALID_EVIDENCE_STATUSES = ['good', 'warning', 'critical'];
+const VALID_EVIDENCE_STATUSES = ['good', 'warning', 'critical'] as const;
+const isValidEvidenceStatus = createValidator<EvidenceStatus>(VALID_EVIDENCE_STATUSES);
 
-function isValidEvidenceStatus(value: string): value is EvidenceStatus {
-  return VALID_EVIDENCE_STATUSES.includes(value);
-}
-
-const VALID_QUESTION_IMPORTANCES = ['high', 'medium', 'low'];
-
-function isValidQuestionImportance(value: string): value is QuestionImportance {
-  return VALID_QUESTION_IMPORTANCES.includes(value);
-}
+const VALID_QUESTION_IMPORTANCES = ['high', 'medium', 'low'] as const;
+const isValidQuestionImportance = createValidator<QuestionImportance>(VALID_QUESTION_IMPORTANCES);
 
 function transformCategoryEvidence(
   evidence: Record<string, CategoryEvidenceResponse>

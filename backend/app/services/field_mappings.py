@@ -133,6 +133,35 @@ CATEGORY_WEIGHTS: dict[str, float] = {
     "voice_match": 0.15,
 }
 
+# =============================================================================
+# ENUM MAPPINGS FOR API RESPONSE PARSING
+# =============================================================================
+# Maps string values from AI responses to enum values.
+# Imported lazily to avoid circular imports.
+
+
+def get_severity_map() -> dict:
+    """Get severity string to enum mapping (lazy import to avoid circular deps)."""
+    from app.models.assessment import IssueSeverity
+    return {
+        "critical": IssueSeverity.CRITICAL,
+        "warning": IssueSeverity.WARNING,
+        "info": IssueSeverity.INFO,
+    }
+
+
+def get_category_map() -> dict:
+    """Get category string to enum mapping (lazy import to avoid circular deps)."""
+    from app.models.assessment import AssessmentCategory
+    return {
+        "inclusivity": AssessmentCategory.INCLUSIVITY,
+        "readability": AssessmentCategory.READABILITY,
+        "structure": AssessmentCategory.STRUCTURE,
+        "completeness": AssessmentCategory.COMPLETENESS,
+        "clarity": AssessmentCategory.CLARITY,
+        "voice_match": AssessmentCategory.VOICE_MATCH,
+    }
+
 
 def get_fields_for_keywords(text: str) -> set[str]:
     """
