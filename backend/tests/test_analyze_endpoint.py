@@ -12,9 +12,10 @@ client = TestClient(app)
 
 def test_analyze_endpoint_exists():
     """Analyze endpoint accepts POST requests."""
+    # Short text will fail validation (min_length=50), but endpoint should exist (not 404)
     response = client.post("/api/analyze", json={"jd_text": "test"})
-    # Should not be 404
-    assert response.status_code != 404
+    # Should not be 404 - validation error (422) is expected for short text
+    assert response.status_code in [200, 422]
 
 
 def test_analyze_returns_scores():
@@ -45,7 +46,7 @@ def test_analyze_returns_scores():
         response = client.post(
             "/api/analyze",
             json={
-                "jd_text": "We are looking for a developer.",
+                "jd_text": "We are looking for a software developer to join our engineering team. The ideal candidate will have experience with Python and JavaScript.",
             }
         )
 

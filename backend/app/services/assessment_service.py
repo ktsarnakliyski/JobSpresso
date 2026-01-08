@@ -1,7 +1,6 @@
 # backend/app/services/assessment_service.py
 
 import logging
-import re
 from typing import Optional
 from app.models.assessment import (
     AssessmentCategory,
@@ -12,23 +11,15 @@ from app.models.assessment import (
     EvidenceStatus,
     QuestionCoverageItem,
 )
-from app.models.voice_profile import VoiceProfile, RuleType
+from app.models.voice_profile import VoiceProfile
 from app.services.scoring import (
     calculate_readability_score,
-    calculate_length_score,
     calculate_structure_score,
     calculate_completeness_score,
-    detect_bias_words,
 )
 from app.services.claude_service import ClaudeService, AnalyzeRequest
 from app.services.question_analyzer import QuestionCoverageAnalyzer
-from app.services.field_mappings import (
-    FIELD_KEYWORDS,
-    BIAS_REPLACEMENTS,
-    EXCLUSION_PATTERNS,
-    get_fields_for_keywords,
-    issue_mentions_excluded_field,
-)
+from app.services.issue_detector import IssueDetector
 
 logger = logging.getLogger(__name__)
 
@@ -45,52 +36,7 @@ class AssessmentService:
     def __init__(self, claude_api_key: str):
         self.claude_service = ClaudeService(api_key=claude_api_key)
         self.question_analyzer = QuestionCoverageAnalyzer()
-
-    def _get_excluded_fields_from_profile(
-        self, voice_profile: Optional[VoiceProfile]
-    ) -> set[str]:
-        """
-        Extract field names that should be excluded from completeness checks
-        based on voice profile rules.
-
-        Detects exclusions from:
-        1. Explicit EXCLUDE rule_type
-        2. Rule text containing exclusion intent ("never", "don't", "no", "skip")
-           combined with topic keywords
-
-        Returns set of field names like {'salary', 'benefits', 'team_size'}
-        """
-        if not voice_profile:
-            return set()
-
-        excluded: set[str] = set()
-
-        for rule in voice_profile.rules:
-            if not rule.active:
-                continue
-
-            rule_lower = rule.text.lower()
-
-            # Method 1: Explicit EXCLUDE rule_type
-            if rule.rule_type == RuleType.EXCLUDE:
-                # Check by explicit target (use shared mapping)
-                if rule.target:
-                    excluded.update(get_fields_for_keywords(rule.target))
-
-                # Check rule text for topic keywords
-                excluded.update(get_fields_for_keywords(rule_lower))
-
-            # Method 2: Detect exclusion intent from 'custom' rules only
-            # E.g., "Never include salary information" → excludes salary
-            # Only applies to CUSTOM rules, not INCLUDE/FORMAT/ORDER/LIMIT
-            elif rule.rule_type == RuleType.CUSTOM:
-                has_exclusion_intent = any(
-                    pattern in rule_lower for pattern in EXCLUSION_PATTERNS
-                )
-                if has_exclusion_intent:
-                    excluded.update(get_fields_for_keywords(rule_lower))
-
-        return excluded
+        self.issue_detector = IssueDetector()
 
     def _calculate_rule_based_scores(
         self, text: str, excluded_fields: Optional[set[str]] = None
@@ -103,127 +49,6 @@ class AssessmentService:
             AssessmentCategory.STRUCTURE: calculate_structure_score(text),
             AssessmentCategory.COMPLETENESS: completeness_score,
         }
-
-    def _detect_bias_issues(self, text: str) -> list[Issue]:
-        """Detect bias-related issues using word lists."""
-        issues = []
-        bias_found = detect_bias_words(text)
-
-        for bias_type, words in bias_found.items():
-            severity = IssueSeverity.WARNING
-
-            for word in words:
-                suggestion = BIAS_REPLACEMENTS.get(word, f"consider alternatives to '{word}'")
-                issues.append(Issue(
-                    severity=severity,
-                    category=AssessmentCategory.INCLUSIVITY,
-                    description=f"Found {bias_type}-coded word: '{word}'",
-                    found=word,
-                    suggestion=suggestion,
-                    impact="May discourage diverse candidates from applying",
-                ))
-
-        return issues
-
-    def _detect_completeness_issues(
-        self, text: str, excluded_fields: Optional[set[str]] = None
-    ) -> list[Issue]:
-        """Detect missing information issues, respecting excluded fields from voice profile."""
-        issues = []
-        excluded = excluded_fields or set()
-        _, missing = calculate_completeness_score(text, excluded)
-
-        impact_map = {
-            "salary": "66% less engagement without salary transparency",
-            "location": "Candidates need to know work arrangement",
-            "benefits": "28% of candidates specifically look for benefits",
-            "team_size": "Helps candidates understand the role context",
-            "requirements_listed": "Clear requirements reduce unqualified applications",
-        }
-
-        for field in missing:
-            # Skip fields excluded by voice profile rules
-            if field in excluded:
-                continue
-
-            severity = IssueSeverity.CRITICAL if field == "salary" else IssueSeverity.WARNING
-            issues.append(Issue(
-                severity=severity,
-                category=AssessmentCategory.COMPLETENESS,
-                description=f"Missing {field.replace('_', ' ')}",
-                suggestion=f"Add {field.replace('_', ' ')} information",
-                impact=impact_map.get(field, "Improves candidate decision-making"),
-            ))
-
-        # Check for salary mentioned without specifics (only if salary not excluded)
-        if "salary" not in excluded:
-            text_lower = text.lower()
-            has_salary_word = bool(re.search(r'\bsalary\b|\bcompensation\b|\bpay\b', text_lower))
-            has_salary_specifics = bool(re.search(
-                r'\$\d|€\d|£\d|\d+k|\d{2,3},?\d{3}|pay\s+range',
-                text_lower
-            ))
-            if has_salary_word and not has_salary_specifics:
-                issues.append(Issue(
-                    severity=IssueSeverity.CRITICAL,
-                    category=AssessmentCategory.COMPLETENESS,
-                    description="Missing salary range specifics",
-                    suggestion="Add specific salary range (e.g., $80,000 - $100,000)",
-                    impact="66% less engagement without salary transparency",
-                ))
-
-        return issues
-
-    def _detect_readability_issues(self, text: str) -> list[Issue]:
-        """Detect readability-related issues."""
-        issues = []
-        readability = calculate_readability_score(text)
-
-        if readability < 60:
-            issues.append(Issue(
-                severity=IssueSeverity.WARNING,
-                category=AssessmentCategory.READABILITY,
-                description="Reading level too complex",
-                suggestion="Simplify language to 8th grade reading level",
-                impact="Higher readability increases application rates",
-            ))
-
-        return issues
-
-    def _detect_rule_based_issues(
-        self, text: str, voice_profile: Optional[VoiceProfile] = None
-    ) -> list[Issue]:
-        """Detect issues using word lists and pattern matching, respecting voice profile rules."""
-        excluded_fields = self._get_excluded_fields_from_profile(voice_profile)
-
-        issues = []
-        issues.extend(self._detect_bias_issues(text))
-        issues.extend(self._detect_completeness_issues(text, excluded_fields))
-        issues.extend(self._detect_readability_issues(text))
-        return issues
-
-    def _issue_conflicts_with_exclusions(
-        self, issue: Issue, excluded_fields: set[str]
-    ) -> bool:
-        """
-        Check if an AI-generated issue conflicts with voice profile exclusions.
-
-        For example, if the user has "Never include salary information" as a rule,
-        we should not show issues suggesting to add salary information.
-
-        Args:
-            issue: The Issue object to check
-            excluded_fields: Set of field names excluded by voice profile rules
-
-        Returns:
-            True if the issue conflicts with exclusions and should be filtered out
-        """
-        return issue_mentions_excluded_field(
-            description=issue.description,
-            found=issue.found,
-            suggestion=issue.suggestion,
-            excluded_fields=excluded_fields,
-        )
 
     def _merge_scores(
         self,
@@ -314,11 +139,11 @@ class AssessmentService:
         Full analysis combining rule-based and AI assessment.
         """
         # Get excluded fields from voice profile rules
-        excluded_fields = self._get_excluded_fields_from_profile(voice_profile)
+        excluded_fields = self.issue_detector.get_excluded_fields_from_profile(voice_profile)
 
         # Rule-based analysis (fast, deterministic) - respects excluded fields
         rule_scores = self._calculate_rule_based_scores(jd_text, excluded_fields)
-        rule_issues = self._detect_rule_based_issues(jd_text, voice_profile)
+        rule_issues = self.issue_detector.detect_all_issues(jd_text, voice_profile)
 
         # Question coverage analysis (Rufus-inspired) - respects excluded topics
         question_coverage_raw = self.question_analyzer.analyze(jd_text, excluded_fields)
@@ -374,7 +199,7 @@ class AssessmentService:
                 continue  # Already in rule issues, skip duplicate
 
             # Check if this issue is about an excluded topic
-            if self._issue_conflicts_with_exclusions(issue, excluded_fields):
+            if self.issue_detector.issue_conflicts_with_exclusions(issue, excluded_fields):
                 continue  # Skip issues about topics the user explicitly excluded
 
             filtered_ai_issues.append(issue)

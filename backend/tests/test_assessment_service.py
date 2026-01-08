@@ -46,7 +46,7 @@ def test_rule_based_scores(assessment_service, sample_jd):
 
 def test_detect_rule_based_issues(assessment_service, sample_jd):
     """Detects bias words and missing elements."""
-    issues = assessment_service._detect_rule_based_issues(sample_jd)
+    issues = assessment_service.issue_detector.detect_all_issues(sample_jd)
 
     # Should find "rockstar" as problematic
     bias_issues = [i for i in issues if i.category == AssessmentCategory.INCLUSIVITY]
@@ -83,13 +83,13 @@ class TestGetExcludedFieldsFromProfile:
 
     def test_no_profile_returns_empty_set(self, assessment_service):
         """Should return empty set when no profile provided."""
-        excluded = assessment_service._get_excluded_fields_from_profile(None)
+        excluded = assessment_service.issue_detector.get_excluded_fields_from_profile(None)
         assert excluded == set()
 
     def test_profile_without_rules_returns_empty_set(self, assessment_service):
         """Should return empty set when profile has no rules."""
         profile = VoiceProfile(id="test", name="Test", rules=[])
-        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        excluded = assessment_service.issue_detector.get_excluded_fields_from_profile(profile)
         assert excluded == set()
 
     def test_exclude_rule_by_target(self, assessment_service):
@@ -107,7 +107,7 @@ class TestGetExcludedFieldsFromProfile:
                 )
             ],
         )
-        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        excluded = assessment_service.issue_detector.get_excluded_fields_from_profile(profile)
         assert "salary" in excluded
 
     def test_exclude_rule_by_keyword_in_text(self, assessment_service):
@@ -124,7 +124,7 @@ class TestGetExcludedFieldsFromProfile:
                 )
             ],
         )
-        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        excluded = assessment_service.issue_detector.get_excluded_fields_from_profile(profile)
         assert "salary" in excluded
 
     def test_inactive_rules_ignored(self, assessment_service):
@@ -142,7 +142,7 @@ class TestGetExcludedFieldsFromProfile:
                 )
             ],
         )
-        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        excluded = assessment_service.issue_detector.get_excluded_fields_from_profile(profile)
         assert "salary" not in excluded
 
     def test_include_rules_not_excluded(self, assessment_service):
@@ -160,7 +160,7 @@ class TestGetExcludedFieldsFromProfile:
                 )
             ],
         )
-        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        excluded = assessment_service.issue_detector.get_excluded_fields_from_profile(profile)
         assert "salary" not in excluded
 
     def test_include_rule_with_exclusion_keywords_not_excluded(self, assessment_service):
@@ -178,7 +178,7 @@ class TestGetExcludedFieldsFromProfile:
                 )
             ],
         )
-        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        excluded = assessment_service.issue_detector.get_excluded_fields_from_profile(profile)
         assert "salary" not in excluded
 
     def test_multiple_exclude_rules_accumulate(self, assessment_service):
@@ -203,7 +203,7 @@ class TestGetExcludedFieldsFromProfile:
                 ),
             ],
         )
-        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        excluded = assessment_service.issue_detector.get_excluded_fields_from_profile(profile)
         assert "salary" in excluded
         assert "benefits" in excluded
 
@@ -222,7 +222,7 @@ class TestGetExcludedFieldsFromProfile:
                 )
             ],
         )
-        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        excluded = assessment_service.issue_detector.get_excluded_fields_from_profile(profile)
         assert "salary" in excluded
 
     def test_custom_rule_with_exclusion_intent(self, assessment_service):
@@ -240,7 +240,7 @@ class TestGetExcludedFieldsFromProfile:
                 )
             ],
         )
-        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        excluded = assessment_service.issue_detector.get_excluded_fields_from_profile(profile)
         assert "salary" in excluded
 
     def test_custom_rule_dont_include(self, assessment_service):
@@ -257,7 +257,7 @@ class TestGetExcludedFieldsFromProfile:
                 )
             ],
         )
-        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        excluded = assessment_service.issue_detector.get_excluded_fields_from_profile(profile)
         assert "benefits" in excluded
 
     def test_custom_rule_skip_omit(self, assessment_service):
@@ -280,7 +280,7 @@ class TestGetExcludedFieldsFromProfile:
                 ),
             ],
         )
-        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        excluded = assessment_service.issue_detector.get_excluded_fields_from_profile(profile)
         assert "team_size" in excluded
         assert "location" in excluded
 
@@ -298,7 +298,7 @@ class TestGetExcludedFieldsFromProfile:
                 )
             ],
         )
-        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        excluded = assessment_service.issue_detector.get_excluded_fields_from_profile(profile)
         # "salary" appears in text but no exclusion intent, so shouldn't be excluded
         assert "salary" not in excluded
 
@@ -323,7 +323,7 @@ class TestVoiceProfileExclusionInIssues:
                 )
             ],
         )
-        issues = assessment_service._detect_rule_based_issues(jd, profile)
+        issues = assessment_service.issue_detector.detect_all_issues(jd, profile)
         salary_issues = [
             i for i in issues if "salary" in i.description.lower()
         ]
