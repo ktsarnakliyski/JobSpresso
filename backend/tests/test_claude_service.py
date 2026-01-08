@@ -133,3 +133,209 @@ def test_voice_extraction_prompt_requests_format_guidance(claude_service):
 
     assert "format_guidance" in prompt
     assert "structure" in prompt.lower()
+
+
+# --- Two-Pass Improvement System Tests ---
+
+
+def test_build_improvement_prompt_includes_original_jd(claude_service):
+    """Improvement prompt includes the original JD text."""
+    original_jd = "We are looking for a rockstar developer."
+    scores = {"inclusivity": 60, "readability": 80, "structure": 70}
+    issues = []
+
+    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+
+    assert "rockstar developer" in prompt
+    assert "ORIGINAL JOB DESCRIPTION" in prompt
+
+
+def test_build_improvement_prompt_includes_scores(claude_service):
+    """Improvement prompt includes all category scores."""
+    original_jd = "Test JD"
+    scores = {
+        "inclusivity": 65,
+        "readability": 80,
+        "structure": 75,
+        "completeness": 50,
+        "clarity": 85,
+        "voice_match": 70,
+    }
+    issues = []
+
+    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+
+    assert "Inclusivity: 65/100" in prompt
+    assert "Readability: 80/100" in prompt
+    assert "Structure: 75/100" in prompt
+    assert "Completeness: 50/100" in prompt
+    assert "Clarity: 85/100" in prompt
+
+
+def test_build_improvement_prompt_includes_issues(claude_service):
+    """Improvement prompt includes formatted issues."""
+    original_jd = "Test JD"
+    scores = {"inclusivity": 60}
+    issues = [
+        {
+            "severity": "warning",
+            "category": "inclusivity",
+            "description": "Found problematic term",
+            "found": "rockstar",
+            "suggestion": "top performer",
+        }
+    ]
+
+    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+
+    assert "Found problematic term" in prompt
+    assert '"rockstar"' in prompt
+    assert "top performer" in prompt
+    assert "[WARNING]" in prompt
+
+
+def test_build_improvement_prompt_without_voice_profile(claude_service):
+    """Improvement prompt handles missing voice profile."""
+    original_jd = "Test JD"
+    scores = {"inclusivity": 75}
+    issues = []
+
+    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues, voice_profile=None)
+
+    assert "No voice profile specified" in prompt
+    assert "N/A" in prompt  # voice_match_score should be N/A
+
+
+def test_build_improvement_prompt_with_voice_profile(claude_service, mock_voice_profile):
+    """Improvement prompt includes voice profile context."""
+    original_jd = "Test JD"
+    scores = {"inclusivity": 75, "voice_match": 80}
+    issues = []
+
+    prompt = claude_service._build_improvement_prompt(
+        original_jd, scores, issues, voice_profile=mock_voice_profile
+    )
+
+    assert "Test Profile" in prompt
+    assert "Match this voice profile" in prompt
+
+
+def test_build_improvement_prompt_calculates_overall_score(claude_service):
+    """Improvement prompt calculates weighted overall score."""
+    original_jd = "Test JD"
+    # All scores at 100 should give overall of 100
+    scores = {
+        "inclusivity": 100,
+        "readability": 100,
+        "structure": 100,
+        "completeness": 100,
+        "clarity": 100,
+        "voice_match": 100,
+    }
+    issues = []
+
+    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+
+    assert "Overall Score: 100/100" in prompt
+
+
+def test_build_improvement_prompt_empty_issues(claude_service):
+    """Improvement prompt handles empty issues list gracefully."""
+    original_jd = "Test JD"
+    scores = {"inclusivity": 90}
+    issues = []
+
+    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+
+    assert "No specific issues detected" in prompt
+
+
+def test_build_improvement_prompt_includes_scoring_algorithms(claude_service):
+    """Improvement prompt includes scoring algorithm documentation."""
+    original_jd = "Test JD"
+    scores = {}
+    issues = []
+
+    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+
+    # Should include algorithm details
+    assert "Flesch-Kincaid" in prompt
+    assert "Grade 6-8" in prompt
+    assert "READABILITY" in prompt
+    assert "STRUCTURE" in prompt
+    assert "COMPLETENESS" in prompt
+    assert "INCLUSIVITY" in prompt
+
+
+def test_build_improvement_prompt_includes_no_hallucination_rule(claude_service):
+    """Improvement prompt emphasizes no hallucination constraint."""
+    original_jd = "Test JD"
+    scores = {}
+    issues = []
+
+    prompt = claude_service._build_improvement_prompt(original_jd, scores, issues)
+
+    assert "NO HALLUCINATION" in prompt
+    assert "FORBIDDEN" in prompt
+    assert "Inventing salary" in prompt
+
+
+@pytest.mark.asyncio
+async def test_generate_improvement_calls_api(claude_service):
+    """generate_improvement calls Claude API with correct parameters."""
+    original_jd = "We need a ninja."
+    scores = {"inclusivity": 60}
+    issues = [{"severity": "warning", "category": "inclusivity", "description": "test"}]
+
+    mock_message = MagicMock()
+    mock_message.stop_reason = "end_turn"
+    mock_message.content = [MagicMock(text="We need an expert.")]
+
+    with patch.object(claude_service.client.messages, "create", new_callable=AsyncMock) as mock_create:
+        mock_create.return_value = mock_message
+
+        result = await claude_service.generate_improvement(original_jd, scores, issues)
+
+        assert mock_create.called
+        call_kwargs = mock_create.call_args.kwargs
+        assert call_kwargs["temperature"] == 0.2  # Lower temperature for consistency
+        assert call_kwargs["max_tokens"] == 4096
+        assert "ninja" in call_kwargs["messages"][0]["content"]
+
+
+@pytest.mark.asyncio
+async def test_generate_improvement_cleans_preamble(claude_service):
+    """generate_improvement removes preamble text from response."""
+    original_jd = "Test JD"
+    scores = {}
+    issues = []
+
+    mock_message = MagicMock()
+    mock_message.stop_reason = "end_turn"
+    mock_message.content = [MagicMock(text="Here's the improved version:\n\nActual JD content here.")]
+
+    with patch.object(claude_service.client.messages, "create", new_callable=AsyncMock) as mock_create:
+        mock_create.return_value = mock_message
+
+        result = await claude_service.generate_improvement(original_jd, scores, issues)
+
+        assert "Here's the improved" not in result
+        assert "Actual JD content here" in result
+
+
+@pytest.mark.asyncio
+async def test_generate_improvement_raises_on_truncation(claude_service):
+    """generate_improvement raises error when response is truncated."""
+    original_jd = "Test JD"
+    scores = {}
+    issues = []
+
+    mock_message = MagicMock()
+    mock_message.stop_reason = "max_tokens"  # Truncated
+    mock_message.content = [MagicMock(text="Partial content...")]
+
+    with patch.object(claude_service.client.messages, "create", new_callable=AsyncMock) as mock_create:
+        mock_create.return_value = mock_message
+
+        with pytest.raises(ValueError, match="truncated"):
+            await claude_service.generate_improvement(original_jd, scores, issues)

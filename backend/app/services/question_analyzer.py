@@ -9,6 +9,8 @@ import re
 from typing import Optional
 from pydantic import BaseModel
 
+from app.services.field_mappings import QUESTION_TO_FIELD
+
 
 class QuestionCoverage(BaseModel):
     """Whether a candidate question is answered in the JD."""
@@ -176,15 +178,6 @@ CANDIDATE_QUESTIONS = {
 class QuestionCoverageAnalyzer:
     """Analyzes whether a JD answers common candidate questions."""
 
-    # Map question IDs to topics that can be excluded by voice profile rules
-    QUESTION_TO_TOPIC = {
-        "compensation": "salary",
-        "remote_policy": "location",
-        "benefits": "benefits",
-        "team_culture": "team_size",
-        "requirements_clarity": "requirements_listed",
-    }
-
     def analyze(
         self, jd_text: str, excluded_topics: Optional[set[str]] = None
     ) -> list[QuestionCoverage]:
@@ -200,8 +193,8 @@ class QuestionCoverageAnalyzer:
         results = []
 
         for qid, qdata in CANDIDATE_QUESTIONS.items():
-            # Skip questions for excluded topics
-            topic = self.QUESTION_TO_TOPIC.get(qid)
+            # Skip questions for excluded topics (using shared mapping)
+            topic = QUESTION_TO_FIELD.get(qid)
             if topic and topic in excluded:
                 continue
             is_answered = False

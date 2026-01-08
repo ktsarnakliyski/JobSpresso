@@ -163,6 +163,24 @@ class TestGetExcludedFieldsFromProfile:
         excluded = assessment_service._get_excluded_fields_from_profile(profile)
         assert "salary" not in excluded
 
+    def test_include_rule_with_exclusion_keywords_not_excluded(self, assessment_service):
+        """INCLUDE rules should not trigger exclusion even with exclusion-like keywords."""
+        # Edge case: INCLUDE rule that contains words like "without" shouldn't exclude
+        profile = VoiceProfile(
+            id="test",
+            name="Test",
+            rules=[
+                ProfileRule(
+                    id="1",
+                    text="Include salary without specific ranges",
+                    rule_type=RuleType.INCLUDE,
+                    active=True,
+                )
+            ],
+        )
+        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        assert "salary" not in excluded
+
     def test_multiple_exclude_rules_accumulate(self, assessment_service):
         """Should accumulate multiple excluded fields."""
         profile = VoiceProfile(
@@ -206,6 +224,83 @@ class TestGetExcludedFieldsFromProfile:
         )
         excluded = assessment_service._get_excluded_fields_from_profile(profile)
         assert "salary" in excluded
+
+    def test_custom_rule_with_exclusion_intent(self, assessment_service):
+        """Should detect exclusion intent from 'custom' rule type based on text."""
+        # Simulates user manually typing "Never include salary" which gets ruleType='custom'
+        profile = VoiceProfile(
+            id="test",
+            name="Test",
+            rules=[
+                ProfileRule(
+                    id="1",
+                    text="Never include salary information",
+                    rule_type=RuleType.CUSTOM,  # Not EXCLUDE - simulates manual entry
+                    active=True,
+                )
+            ],
+        )
+        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        assert "salary" in excluded
+
+    def test_custom_rule_dont_include(self, assessment_service):
+        """Should detect 'don't include' as exclusion intent."""
+        profile = VoiceProfile(
+            id="test",
+            name="Test",
+            rules=[
+                ProfileRule(
+                    id="1",
+                    text="Don't include benefits",
+                    rule_type=RuleType.CUSTOM,
+                    active=True,
+                )
+            ],
+        )
+        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        assert "benefits" in excluded
+
+    def test_custom_rule_skip_omit(self, assessment_service):
+        """Should detect 'skip' and 'omit' as exclusion intent."""
+        profile = VoiceProfile(
+            id="test",
+            name="Test",
+            rules=[
+                ProfileRule(
+                    id="1",
+                    text="Skip team size details",
+                    rule_type=RuleType.CUSTOM,
+                    active=True,
+                ),
+                ProfileRule(
+                    id="2",
+                    text="Omit location info",
+                    rule_type=RuleType.CUSTOM,
+                    active=True,
+                ),
+            ],
+        )
+        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        assert "team_size" in excluded
+        assert "location" in excluded
+
+    def test_custom_rule_without_exclusion_intent_not_excluded(self, assessment_service):
+        """Custom rules without exclusion keywords should not trigger exclusion."""
+        profile = VoiceProfile(
+            id="test",
+            name="Test",
+            rules=[
+                ProfileRule(
+                    id="1",
+                    text="Use formal language when mentioning salary",
+                    rule_type=RuleType.CUSTOM,
+                    active=True,
+                )
+            ],
+        )
+        excluded = assessment_service._get_excluded_fields_from_profile(profile)
+        # "salary" appears in text but no exclusion intent, so shouldn't be excluded
+        assert "salary" not in excluded
 
 
 # Tests for voice profile exclusion in rule-based issues
