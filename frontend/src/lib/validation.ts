@@ -1,6 +1,6 @@
 // frontend/src/lib/validation.ts
 
-import { VoiceProfile, RULE_TARGET_FIELD_MAP } from '@/types/voice-profile';
+import { VoiceProfile, ProfileRule, RULE_TARGET_FIELD_MAP } from '@/types/voice-profile';
 
 export interface ProfileHint {
   field: string;
@@ -26,6 +26,69 @@ export interface GenerateFormData {
  */
 function isFieldFilled(value: string | undefined): boolean {
   return !!value?.trim();
+}
+
+/**
+ * Patterns that indicate exclusion intent in rule text.
+ * Matches backend logic in assessment_service.py
+ */
+const EXCLUSION_PATTERNS = [
+  'never include',
+  "don't include",
+  'do not include',
+  'exclude',
+  'skip',
+  'omit',
+  'no salary',
+  'no location',
+  'no benefits',
+  'no team',
+  'without salary',
+  'without location',
+  'without benefits',
+];
+
+/**
+ * Check if a rule has exclusion intent (either explicit ruleType or text patterns).
+ * Used to avoid suggesting fields that the user wants to exclude.
+ */
+function hasExclusionIntent(rule: ProfileRule): boolean {
+  // Explicit exclude rule type
+  if (rule.ruleType === 'exclude') {
+    return true;
+  }
+
+  // Check for exclusion patterns in custom rules
+  if (rule.ruleType === 'custom') {
+    const lowerText = rule.text.toLowerCase();
+    return EXCLUSION_PATTERNS.some(pattern => lowerText.includes(pattern));
+  }
+
+  return false;
+}
+
+/**
+ * Check if a specific field is excluded by any active rule in the profile.
+ * Used to avoid suggesting fields that have exclusion rules.
+ */
+function isFieldExcludedByRules(profile: VoiceProfile, fieldKeywords: string[]): boolean {
+  const activeRules = profile.rules?.filter((r) => r.active) ?? [];
+
+  for (const rule of activeRules) {
+    if (!hasExclusionIntent(rule)) continue;
+
+    const lowerText = rule.text.toLowerCase();
+    const lowerTarget = rule.target?.toLowerCase() ?? '';
+
+    // Check if any of the field keywords match the rule target or text
+    for (const keyword of fieldKeywords) {
+      if (lowerTarget === keyword || lowerText.includes(keyword)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -78,8 +141,14 @@ export function getProfileHints(
   };
 
   // 1. Check active rules for targets that map to empty fields
+  // Skip rules with exclusion intent - we don't want to suggest adding fields the user wants to exclude
   const activeRules = profile.rules?.filter((r) => r.active) ?? [];
   for (const rule of activeRules) {
+    // Skip exclusion rules - these explicitly say NOT to include certain fields
+    if (hasExclusionIntent(rule)) {
+      continue;
+    }
+
     // Check rule.target directly
     if (rule.target) {
       const mapping = RULE_TARGET_FIELD_MAP[rule.target.toLowerCase()];
@@ -107,9 +176,10 @@ export function getProfileHints(
     }
   }
 
-  // 2. Check structure preferences
+  // 2. Check structure preferences (skip if field is excluded by rules)
   if (profile.structurePreferences?.includeSalaryProminently) {
-    if (!isFieldFilled(formData.salaryRange)) {
+    const salaryExcluded = isFieldExcludedByRules(profile, ['salary', 'compensation', 'pay']);
+    if (!salaryExcluded && !isFieldFilled(formData.salaryRange)) {
       addHint(
         'salaryRange',
         'Salary Range',
@@ -120,7 +190,8 @@ export function getProfileHints(
   }
 
   if (profile.structurePreferences?.leadWithBenefits) {
-    if (!isFieldFilled(formData.benefits)) {
+    const benefitsExcluded = isFieldExcludedByRules(profile, ['benefits', 'perks']);
+    if (!benefitsExcluded && !isFieldFilled(formData.benefits)) {
       addHint(
         'benefits',
         'Benefits',
@@ -130,10 +201,14 @@ export function getProfileHints(
     }
   }
 
-  // 3. Check format guidance for keywords
+  // 3. Check format guidance for keywords (skip if field is excluded by rules)
   if (profile.formatGuidance) {
     const keywordsInGuidance = findKeywordsInText(profile.formatGuidance);
     for (const kw of keywordsInGuidance) {
+      // Skip if this field is excluded by rules
+      if (isFieldExcludedByRules(profile, [kw.keyword])) {
+        continue;
+      }
       if (!isFieldFilled(formData[kw.field as keyof GenerateFormData])) {
         addHint(
           kw.field,
