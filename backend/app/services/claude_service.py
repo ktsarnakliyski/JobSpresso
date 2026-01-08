@@ -446,20 +446,12 @@ Do NOT include phrases like "Here's the improved version:" - just the JD text it
         voice_profile: Optional[VoiceProfile] = None,
     ) -> str:
         """Build the improvement prompt with full scoring context."""
-        # Import here to avoid circular dependency (assessment_service imports claude_service)
-        from app.services.assessment_service import BIAS_REPLACEMENTS
+        # Import centralized constants (no more circular dependency issue)
+        from app.services.field_mappings import BIAS_REPLACEMENTS, CATEGORY_WEIGHTS
 
         # Calculate overall score (weighted average)
-        weights = {
-            "inclusivity": 0.25,
-            "readability": 0.20,
-            "structure": 0.15,
-            "completeness": 0.15,
-            "clarity": 0.10,
-            "voice_match": 0.15,
-        }
         overall_score = sum(
-            scores.get(cat, 75) * weight for cat, weight in weights.items()
+            scores.get(cat, 75) * weight for cat, weight in CATEGORY_WEIGHTS.items()
         )
 
         # Format issues list
