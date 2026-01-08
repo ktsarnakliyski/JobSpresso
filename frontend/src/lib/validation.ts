@@ -29,8 +29,17 @@ function isFieldFilled(value: string | undefined): boolean {
 }
 
 /**
+ * Escape special regex characters in a string.
+ * Used for safely building regexes from user-controlled strings.
+ */
+function escapeRegex(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Patterns that indicate exclusion intent in rule text.
- * Matches backend logic in assessment_service.py
+ * SOURCE OF TRUTH: backend/app/services/field_mappings.py EXCLUSION_PATTERNS
+ * Keep in sync manually - backend is authoritative.
  */
 const EXCLUSION_PATTERNS = [
   'never include',
@@ -100,8 +109,8 @@ function findKeywordsInText(text: string): Array<{ field: string; label: string;
   const lowerText = text.toLowerCase();
 
   for (const [keyword, mapping] of Object.entries(RULE_TARGET_FIELD_MAP)) {
-    // Use word boundaries to avoid partial matches
-    const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+    // Use word boundaries to avoid partial matches, escape special chars for safety
+    const regex = new RegExp(`\\b${escapeRegex(keyword)}\\b`, 'i');
     if (regex.test(lowerText)) {
       // Avoid duplicates for the same field
       if (!found.some((f) => f.field === mapping.field)) {

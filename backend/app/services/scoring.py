@@ -1,44 +1,16 @@
 # backend/app/services/scoring.py
+"""
+Scoring Service
+
+Provides rule-based scoring functions for job description assessment.
+Includes readability, structure, completeness, and bias detection.
+"""
 
 import re
 import textstat
 from typing import Optional
 
-
-# Bias word lists - only genuinely problematic terms
-# Note: We intentionally exclude legitimate professional qualities like
-# "analytical", "competitive", "collaborative" - these are valid job requirements.
-# Research on gender-coded language suggests IMBALANCE matters, not individual words.
-# This list focuses on terms that are genuinely exclusionary or problematic.
-BIAS_WORD_LISTS = {
-    "problematic": [
-        # Tech bro culture - exclusionary jargon
-        "ninja",
-        "rockstar",
-        "guru",
-        "wizard",
-        "superhero",
-        "unicorn",
-        # Potentially discriminatory phrases
-        "culture fit",  # Often used to justify discrimination
-        "native English speaker",  # National origin discrimination
-        # Unrealistic expectations
-        "hit the ground running",  # No onboarding = red flag
-        "wear many hats",  # Understaffed = red flag
-        "fast-paced environment",  # Often means chaotic/burnout
-        "work hard play hard",  # Often means overwork culture
-    ],
-    "ageist": [
-        # Young bias
-        "young",
-        "digital native",  # Age discrimination (kept here only)
-        "recent graduate",
-        "fresh",
-        "early career only",
-        # Old bias
-        "overqualified",
-    ],
-}
+from app.services.field_mappings import BIAS_WORD_LISTS
 
 
 def _preprocess_for_readability(text: str) -> str:

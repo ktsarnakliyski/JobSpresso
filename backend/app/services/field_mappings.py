@@ -1,17 +1,21 @@
 # backend/app/services/field_mappings.py
 """
-Centralized field mappings for voice profile exclusions.
+Centralized field mappings and constants for JobSpresso assessment.
 
-This module provides a single source of truth for mapping between:
-- User-facing topic keywords (salary, compensation, pay, etc.)
-- Internal field names (salary, location, benefits, team_size, requirements_listed)
-- Question IDs used in the question coverage analyzer
+This module provides a single source of truth for:
+- Field keyword mappings (salary, compensation → salary field)
+- Bias word definitions with categories and replacements
+- Exclusion pattern detection
+- Assessment category weights
 
 Used by:
 - AssessmentService._get_excluded_fields_from_profile()
 - AssessmentService._issue_conflicts_with_exclusions()
 - QuestionCoverageAnalyzer.analyze()
+- scoring.py for bias word detection
+- claude_service.py for improvement generation
 """
+from typing import Optional
 
 # Canonical mapping: field name -> list of keywords that indicate this field
 # This is the single source of truth for all field/topic mappings
@@ -39,6 +43,94 @@ QUESTION_TO_FIELD: dict[str, str] = {
     "benefits": "benefits",
     "team_culture": "team_size",
     "requirements_clarity": "requirements_listed",
+}
+
+# =============================================================================
+# BIAS WORD DEFINITIONS
+# =============================================================================
+# Single source of truth for bias word detection and replacements.
+# Note: We intentionally exclude legitimate professional qualities like
+# "analytical", "competitive", "collaborative" - these are valid job requirements.
+# Research on gender-coded language suggests IMBALANCE matters, not individual words.
+# This list focuses on terms that are genuinely exclusionary or problematic.
+
+# Consolidated bias terms with category and replacement
+# Format: word -> {"category": str, "replacement": str}
+BIAS_TERMS: dict[str, dict[str, str]] = {
+    # Tech bro culture - exclusionary jargon
+    "ninja": {"category": "problematic", "replacement": "expert"},
+    "rockstar": {"category": "problematic", "replacement": "top performer"},
+    "guru": {"category": "problematic", "replacement": "specialist"},
+    "wizard": {"category": "problematic", "replacement": "expert"},
+    "superhero": {"category": "problematic", "replacement": "high performer"},
+    "unicorn": {"category": "problematic", "replacement": "versatile professional"},
+    # Potentially discriminatory phrases
+    "culture fit": {"category": "problematic", "replacement": "values alignment"},
+    "native English speaker": {"category": "problematic", "replacement": "fluent English speaker"},
+    # Unrealistic expectations
+    "hit the ground running": {"category": "problematic", "replacement": "quickly onboard"},
+    "wear many hats": {"category": "problematic", "replacement": "take on varied responsibilities"},
+    "fast-paced environment": {"category": "problematic", "replacement": "dynamic environment"},
+    "work hard play hard": {"category": "problematic", "replacement": "balanced work culture"},
+    # Ageist terms - young bias
+    "young": {"category": "ageist", "replacement": "early-career"},
+    "digital native": {"category": "ageist", "replacement": "digitally fluent"},
+    "recent graduate": {"category": "ageist", "replacement": "entry-level candidate"},
+    "fresh": {"category": "ageist", "replacement": "new to the field"},
+    "early career only": {"category": "ageist", "replacement": "entry-level"},
+    # Ageist terms - old bias
+    "overqualified": {"category": "ageist", "replacement": "highly experienced"},
+}
+
+# Derived: word lists by category (for backward compatibility with scoring.py)
+BIAS_WORD_LISTS: dict[str, list[str]] = {}
+for word, data in BIAS_TERMS.items():
+    category = data["category"]
+    if category not in BIAS_WORD_LISTS:
+        BIAS_WORD_LISTS[category] = []
+    BIAS_WORD_LISTS[category].append(word)
+
+# Derived: word -> replacement mapping (for assessment_service.py)
+BIAS_REPLACEMENTS: dict[str, str] = {
+    word: data["replacement"] for word, data in BIAS_TERMS.items()
+}
+
+# =============================================================================
+# EXCLUSION PATTERNS
+# =============================================================================
+# Patterns that indicate exclusion intent in voice profile rule text.
+# Used by both backend (assessment_service.py) and frontend (validation.ts).
+# Frontend must be kept in sync manually - this is the source of truth.
+
+EXCLUSION_PATTERNS: list[str] = [
+    "never include",
+    "don't include",
+    "do not include",
+    "exclude",
+    "skip",
+    "omit",
+    "no salary",
+    "no location",
+    "no benefits",
+    "no team",
+    "without salary",
+    "without location",
+    "without benefits",
+]
+
+# =============================================================================
+# ASSESSMENT CATEGORY WEIGHTS
+# =============================================================================
+# Weights for calculating overall assessment score.
+# Used by claude_service.py for improvement generation.
+
+CATEGORY_WEIGHTS: dict[str, float] = {
+    "inclusivity": 0.25,
+    "readability": 0.20,
+    "structure": 0.15,
+    "completeness": 0.15,
+    "clarity": 0.10,
+    "voice_match": 0.15,
 }
 
 

@@ -23,34 +23,11 @@ from app.services.claude_service import ClaudeService, AnalyzeRequest
 from app.services.question_analyzer import QuestionCoverageAnalyzer
 from app.services.field_mappings import (
     FIELD_KEYWORDS,
+    BIAS_REPLACEMENTS,
+    EXCLUSION_PATTERNS,
     get_fields_for_keywords,
     issue_mentions_excluded_field,
 )
-
-
-# Replacement suggestions for bias words (synced with BIAS_WORD_LISTS in scoring.py)
-BIAS_REPLACEMENTS = {
-    # Tech bro culture terms
-    "ninja": "expert",
-    "rockstar": "top performer",
-    "guru": "specialist",
-    "wizard": "expert",
-    "superhero": "high performer",
-    "unicorn": "versatile professional",
-    # Discriminatory phrases
-    "culture fit": "values alignment",
-    "digital native": "digitally fluent",
-    "native English speaker": "fluent English speaker",
-    # Unrealistic expectations
-    "hit the ground running": "quickly onboard",
-    "wear many hats": "take on varied responsibilities",
-    "fast-paced environment": "dynamic environment",
-    "work hard play hard": "balanced work culture",
-    # Ageist terms
-    "young": "early-career",
-    "fresh": "new to the field",
-    "overqualified": "highly experienced",
-}
 
 
 class AssessmentService:
@@ -65,23 +42,6 @@ class AssessmentService:
     def __init__(self, claude_api_key: str):
         self.claude_service = ClaudeService(api_key=claude_api_key)
         self.question_analyzer = QuestionCoverageAnalyzer()
-
-    # Patterns that indicate exclusion intent in rule text
-    EXCLUSION_PATTERNS = [
-        "never include",
-        "don't include",
-        "do not include",
-        "exclude",
-        "skip",
-        "omit",
-        "no salary",
-        "no location",
-        "no benefits",
-        "no team",
-        "without salary",
-        "without location",
-        "without benefits",
-    ]
 
     def _get_excluded_fields_from_profile(
         self, voice_profile: Optional[VoiceProfile]
@@ -122,7 +82,7 @@ class AssessmentService:
             # Only applies to CUSTOM rules, not INCLUDE/FORMAT/ORDER/LIMIT
             elif rule.rule_type == RuleType.CUSTOM:
                 has_exclusion_intent = any(
-                    pattern in rule_lower for pattern in self.EXCLUSION_PATTERNS
+                    pattern in rule_lower for pattern in EXCLUSION_PATTERNS
                 )
                 if has_exclusion_intent:
                     excluded.update(get_fields_for_keywords(rule_lower))
