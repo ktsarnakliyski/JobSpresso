@@ -80,5 +80,6 @@ app.include_router(voice.router)
 
 
 @app.get("/health")
+@app.get("/api/health")
 async def health_check():
     return {"status": "healthy", "app": settings.app_name}

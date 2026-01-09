@@ -53,7 +53,7 @@ jobs:
       - name: Health check
         run: |
           sleep 30
-          curl -f https://jobspresso.ktexperience.com/health || exit 1
+          curl -f https://jobspresso.ktexperience.com/api/health || exit 1
 
       - name: Notify Discord on deploy failure
         if: failure()
