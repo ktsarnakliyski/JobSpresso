@@ -20,7 +20,7 @@ jobs:
     steps:
       # CRITICAL FIX: Save rollback SHA BEFORE git pull, use run-id to avoid conflicts
       - name: Save current SHA for rollback
-        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
+        uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -30,7 +30,7 @@ jobs:
             git rev-parse HEAD > /tmp/rollback_sha_${{ github.run_id }}
 
       - name: Run tests on server
-        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
+        uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -43,7 +43,7 @@ jobs:
 
       - name: Notify Discord on test failure
         if: failure()
-        uses: sarisia/actions-status-discord@61114b793b460ee85fe38ad3fccc78c7ecca83a4 # v1.15.0
+        uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: failure
@@ -59,7 +59,7 @@ jobs:
 
       - name: Cleanup rollback file on test failure
         if: failure()
-        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
+        uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -73,7 +73,7 @@ jobs:
     environment: production
     steps:
       - name: Deploy to server
-        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
+        uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -86,7 +86,7 @@ jobs:
       - name: Health check with retries
         id: health
         continue-on-error: true
-        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
+        uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -107,7 +107,7 @@ jobs:
       # CRITICAL FIX: Use reset --hard to avoid detached HEAD
       - name: Rollback on failure
         if: steps.health.outcome == 'failure'
-        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
+        uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -135,7 +135,7 @@ jobs:
 
       - name: Cleanup rollback file on success
         if: success()
-        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
+        uses: appleboy/ssh-action@v1.1.0
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -144,7 +144,7 @@ jobs:
 
       - name: Notify Discord on deploy failure
         if: failure()
-        uses: sarisia/actions-status-discord@61114b793b460ee85fe38ad3fccc78c7ecca83a4 # v1.15.0
+        uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: failure
@@ -160,7 +160,7 @@ jobs:
 
       - name: Notify Discord on success
         if: success()
-        uses: sarisia/actions-status-discord@61114b793b460ee85fe38ad3fccc78c7ecca83a4 # v1.15.0
+        uses: sarisia/actions-status-discord@v1
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: success
