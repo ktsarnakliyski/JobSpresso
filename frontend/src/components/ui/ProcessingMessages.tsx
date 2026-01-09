@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 interface ProcessingMessagesProps {
@@ -19,18 +19,25 @@ export function ProcessingMessages({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
+  const transitionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (messages.length <= 1) return;
 
     const interval = setInterval(() => {
       setIsTransitioning(true);
-      setTimeout(() => {
+      transitionTimeoutRef.current = setTimeout(() => {
         setCurrentIndex((prev) => (prev + 1) % messages.length);
         setIsTransitioning(false);
       }, 150);
     }, intervalMs);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (transitionTimeoutRef.current) {
+        clearTimeout(transitionTimeoutRef.current);
+      }
+    };
   }, [messages.length, intervalMs]);
 
   return (

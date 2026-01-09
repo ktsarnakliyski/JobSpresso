@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from './Button';
 import { ClipboardIcon, CheckIcon } from '@/components/icons';
@@ -50,6 +50,14 @@ export function CopyButton({
   copiedLabel = 'Copied!',
 }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   const handleCopy = useCallback(async () => {
     if (!text) return;
@@ -57,7 +65,8 @@ export function CopyButton({
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setCopied(false), 2500);
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
     }
@@ -113,14 +122,23 @@ export function InlineCopyButton({
   className,
 }: InlineCopyButtonProps) {
   const [copied, setCopied] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const colors = INLINE_VARIANTS[variant];
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   const handleCopy = useCallback(async () => {
     if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      timeoutRef.current = setTimeout(() => setCopied(false), 2500);
     } catch (err) {
       console.error('Failed to copy to clipboard:', err);
     }
