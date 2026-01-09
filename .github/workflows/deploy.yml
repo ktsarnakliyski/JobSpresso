@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
 
+# CRITICAL FIX: Prevent concurrent deployments causing race conditions
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 env:
   PROJECT_PATH: /root/projects/JobSpresso
   PROD_URL: https://jobspresso.ktexperience.com
@@ -13,8 +18,19 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
     steps:
+      # CRITICAL FIX: Save rollback SHA BEFORE git pull, use run-id to avoid conflicts
+      - name: Save current SHA for rollback
+        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ env.PROJECT_PATH }}
+            git rev-parse HEAD > /tmp/rollback_sha_${{ github.run_id }}
+
       - name: Run tests on server
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -27,7 +43,7 @@ jobs:
 
       - name: Notify Discord on test failure
         if: failure()
-        uses: sarisia/actions-status-discord@v1
+        uses: sarisia/actions-status-discord@61114b793b460ee85fe38ad3fccc78c7ecca83a4 # v1.15.0
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: failure
@@ -41,38 +57,57 @@ jobs:
           url: ${{ github.event.head_commit.url }}
           color: 0xff0000
 
+      - name: Cleanup rollback file on test failure
+        if: failure()
+        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: rm -f /tmp/rollback_sha_${{ github.run_id }}
+
   deploy:
     name: Deploy
     runs-on: ubuntu-latest
     needs: test
     environment: production
     steps:
-      - name: Save current version and deploy
-        id: deploy
-        uses: appleboy/ssh-action@v1
+      - name: Deploy to server
+        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ${{ env.PROJECT_PATH }}
-
-            # Save current commit SHA for potential rollback
-            echo "ROLLBACK_SHA=$(git rev-parse HEAD)" > /tmp/rollback_sha
-
-            # Deploy new version
             docker compose -f docker-compose.prod.yml up -d --build
 
-      - name: Health check
+      # HIGH FIX: Run health check on server, not GitHub runner
+      - name: Health check with retries
         id: health
         continue-on-error: true
-        run: |
-          sleep 30
-          curl -f ${{ env.PROD_URL }}/api/health
+        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sleep 10
+            for i in 1 2 3 4 5 6; do
+              if curl -sf http://localhost:8000/api/health; then
+                echo "Health check passed on attempt $i"
+                exit 0
+              fi
+              echo "Attempt $i failed, waiting 10s..."
+              sleep 10
+            done
+            echo "Health check failed after 6 attempts"
+            exit 1
 
+      # CRITICAL FIX: Use reset --hard to avoid detached HEAD
       - name: Rollback on failure
         if: steps.health.outcome == 'failure'
-        uses: appleboy/ssh-action@v1
+        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
@@ -80,24 +115,36 @@ jobs:
           script: |
             cd ${{ env.PROJECT_PATH }}
 
-            # Get the saved rollback SHA
-            source /tmp/rollback_sha
+            ROLLBACK_FILE="/tmp/rollback_sha_${{ github.run_id }}"
+            if [ ! -f "$ROLLBACK_FILE" ]; then
+              echo "ERROR: Rollback file not found!"
+              exit 1
+            fi
+
+            ROLLBACK_SHA=$(cat "$ROLLBACK_FILE")
             echo "Rolling back to $ROLLBACK_SHA"
 
-            # Rollback
-            git checkout $ROLLBACK_SHA
+            git reset --hard "$ROLLBACK_SHA"
             docker compose -f docker-compose.prod.yml up -d --build
 
-            # Cleanup
-            rm /tmp/rollback_sha
+            rm -f "$ROLLBACK_FILE"
 
       - name: Fail workflow if rollback occurred
         if: steps.health.outcome == 'failure'
         run: exit 1
 
+      - name: Cleanup rollback file on success
+        if: success()
+        uses: appleboy/ssh-action@25ce8cbbcb02e276cc43d9e962e7758cc1e31e8e # v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: rm -f /tmp/rollback_sha_${{ github.run_id }}
+
       - name: Notify Discord on deploy failure
         if: failure()
-        uses: sarisia/actions-status-discord@v1
+        uses: sarisia/actions-status-discord@61114b793b460ee85fe38ad3fccc78c7ecca83a4 # v1.15.0
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: failure
@@ -113,7 +160,7 @@ jobs:
 
       - name: Notify Discord on success
         if: success()
-        uses: sarisia/actions-status-discord@v1
+        uses: sarisia/actions-status-discord@61114b793b460ee85fe38ad3fccc78c7ecca83a4 # v1.15.0
         with:
           webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
           status: success
