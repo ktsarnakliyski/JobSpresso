@@ -84,11 +84,15 @@ function QuestionGroupsContent({
           const isExpanded = expandedGroups.has(importance);
           const answeredInGroup = questionsInGroup.filter((q) => q.isAnswered).length;
 
+          const groupId = `question-group-${importance}`;
+
           return (
             <div key={importance} className="border border-navy-200/60 rounded-xl overflow-hidden">
               {/* Group header */}
               <button
                 onClick={() => toggleGroup(importance)}
+                aria-expanded={isExpanded}
+                aria-controls={groupId}
                 className={cn(
                   'w-full flex items-center justify-between px-4 py-3',
                   'hover:bg-navy-50/50 transition-colors',
@@ -108,7 +112,7 @@ function QuestionGroupsContent({
 
               {/* Questions list */}
               {isExpanded && (
-                <div className="divide-y divide-navy-100">
+                <div id={groupId} className="divide-y divide-navy-100">
                   {questionsInGroup.map((question) => (
                     <QuestionItem key={question.questionId} question={question} />
                   ))}

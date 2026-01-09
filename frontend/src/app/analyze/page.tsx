@@ -2,12 +2,13 @@
 
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, Button, TextArea, LoadingSpinner, ErrorCard, CopyButton, ProcessingMessages } from '@/components/ui';
 import { VoiceProfileSelector } from '@/components/VoiceProfileSelector';
 import { ScoreDisplay } from '@/components/ScoreDisplay';
 import { useAnalyze } from '@/hooks/useAnalyze';
 import { useVoiceProfiles } from '@/hooks/useVoiceProfiles';
+import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 
 const ANALYZE_MESSAGES = [
   'Analyzing your job description...',
@@ -49,18 +50,10 @@ export default function AnalyzePage() {
   }, [reset]);
 
   // Keyboard shortcut: Cmd/Ctrl+Enter to analyze
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        e.preventDefault();
-        if (jdText.trim() && !isLoading) {
-          handleAnalyze();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [jdText, isLoading, handleAnalyze]);
+  useKeyboardShortcut({
+    onTrigger: handleAnalyze,
+    enabled: !!jdText.trim() && !isLoading,
+  });
 
   return (
     <div className="space-y-8">

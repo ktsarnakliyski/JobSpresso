@@ -2,10 +2,10 @@
 
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from './Button';
 import { ClipboardIcon, CheckIcon } from '@/components/icons';
+import { useCopyToClipboard } from '@/hooks/useCopyToClipboard';
 
 // Color variants for inline copy buttons
 const INLINE_VARIANTS = {
@@ -49,35 +49,14 @@ export function CopyButton({
   label = 'Copy',
   copiedLabel = 'Copied!',
 }: CopyButtonProps) {
-  const [copied, setCopied] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, []);
-
-  const handleCopy = useCallback(async () => {
-    if (!text) return;
-
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => setCopied(false), 2500);
-    } catch (err) {
-      console.error('Failed to copy to clipboard:', err);
-    }
-  }, [text]);
+  const { copied, copy } = useCopyToClipboard();
 
   return (
     <>
       <Button
         variant="outline"
         size={size}
-        onClick={handleCopy}
+        onClick={() => copy(text)}
         aria-label={copied ? 'Copied to clipboard' : 'Copy to clipboard'}
         className={cn(
           'transition-all duration-200',
@@ -86,21 +65,12 @@ export function CopyButton({
       >
         {copied ? (
           <>
-            <svg
-              className="w-4 h-4 mr-1.5 text-emerald-600 animate-[bounce_0.5s_ease-in-out]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
+            <CheckIcon className="w-4 h-4 mr-1.5 text-emerald-600 animate-[bounce_0.5s_ease-in-out]" />
             <span className="text-emerald-600">{copiedLabel}</span>
           </>
         ) : (
           <>
-            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-            </svg>
+            <ClipboardIcon className="w-4 h-4 mr-1.5" />
             {label}
           </>
         )}
@@ -121,34 +91,14 @@ export function InlineCopyButton({
   copiedLabel = 'Copied!',
   className,
 }: InlineCopyButtonProps) {
-  const [copied, setCopied] = useState(false);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { copied, copy } = useCopyToClipboard();
   const colors = INLINE_VARIANTS[variant];
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    };
-  }, []);
-
-  const handleCopy = useCallback(async () => {
-    if (!text) return;
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => setCopied(false), 2500);
-    } catch (err) {
-      console.error('Failed to copy to clipboard:', err);
-    }
-  }, [text]);
 
   return (
     <>
       <button
         type="button"
-        onClick={handleCopy}
+        onClick={() => copy(text)}
         aria-label={copied ? 'Copied to clipboard' : 'Copy to clipboard'}
         className={cn(
           'inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium',
