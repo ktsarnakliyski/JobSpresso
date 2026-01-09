@@ -27,14 +27,18 @@ interface ScoreDisplayProps {
 // Questions and Categories are important for understanding the analysis
 function getZone3Defaults(score: number) {
   if (score >= 80) {
-    // Excellent: show positives and questions (what candidates want to know)
+    // Excellent: show positives and questions (validation)
     return { positives: true, questions: true, categories: false };
   }
   if (score >= 60) {
     // Good: show questions to help improve further
     return { positives: false, questions: true, categories: false };
   }
-  // Needs work or poor: show questions and categories to understand what's missing
+  if (score >= 40) {
+    // Needs work: show questions and categories to understand weak areas
+    return { positives: false, questions: true, categories: true };
+  }
+  // Poor: show everything important
   return { positives: false, questions: true, categories: true };
 }
 
@@ -78,21 +82,38 @@ export function ScoreDisplay({ result }: ScoreDisplayProps) {
       {/* ===== ZONE 1: COMMAND CENTER (Sticky) ===== */}
       <div className="sticky top-0 z-10 -mx-1 px-1 pt-1 -mt-1">
         <Card className={cn(
-          'backdrop-blur-sm bg-white/95',
-          'shadow-soft transition-shadow duration-200'
+          'backdrop-blur-sm bg-gradient-to-br from-white via-white to-navy-50/50',
+          'shadow-soft transition-shadow duration-200 overflow-hidden',
+          'border-navy-200/60'
         )}>
-          <div className="flex flex-col md:flex-row items-center gap-6 md:gap-8">
-            {/* Compact Circular Score */}
-            <CircularScore
-              score={overallScore}
-              interpretation={interpretation}
-              size="md"
-              showLabel={true}
-              estimatedBoost={estimatedApplicationBoost}
-            />
+          {/* Decorative background element */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-teal/5 to-transparent rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+
+          <div className="relative flex flex-col md:flex-row items-center gap-6 md:gap-10">
+            {/* Score Section */}
+            <div className="flex-shrink-0">
+              <CircularScore
+                score={overallScore}
+                interpretation={interpretation}
+                size="md"
+                showLabel={true}
+                estimatedBoost={estimatedApplicationBoost}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="hidden md:block w-px h-32 bg-gradient-to-b from-transparent via-navy-200 to-transparent" />
 
             {/* Action Summary */}
-            <div className="flex-1 w-full">
+            <div className="flex-1 w-full space-y-4">
+              {/* Section header */}
+              <div className="flex items-center gap-2">
+                <div className="w-1 h-4 bg-teal rounded-full" />
+                <h3 className="text-sm font-semibold text-navy-700 uppercase tracking-wide">
+                  Action Items
+                </h3>
+              </div>
+
               <ActionSummary
                 issues={issues}
                 categoryStatuses={categoryStatuses}

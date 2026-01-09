@@ -77,6 +77,18 @@ IMPORTANT GUIDELINES:
 5. Be practical - prioritize high-impact, easy-to-implement changes
 6. If no voice profile is provided, set voice_match supporting_excerpts and missing_elements to empty arrays
 
+EXCERPT SELECTION GUIDELINES (for concise, high-quality output):
+- For supporting_excerpts: Quote only the KEY PHRASE (2-8 words), not surrounding context
+  GOOD: "we welcome candidates from all backgrounds"
+  BAD: "At our company, we believe in diversity and we welcome candidates from all backgrounds to apply for this position"
+- For missing_elements: State what's missing in a brief phrase, not a full sentence
+  GOOD: "No salary range disclosed"
+  BAD: "The job description does not include any information about the expected salary range for this position"
+- For "found" in issues: Quote the EXACT problematic phrase only (2-6 words typically)
+- Maximum 2 supporting_excerpts per category (pick the 2 most representative)
+- Maximum 2 missing_elements per category (pick the 2 most important)
+- Set impact_prediction to null for readability, clarity, and voice_match (only use for inclusivity)
+
 CRITICAL - ISSUE QUALITY RULES (MANDATORY - VIOLATIONS INVALIDATE YOUR RESPONSE):
 
 7. SINGLE-WORD ISSUES ARE ABSOLUTELY PROHIBITED.

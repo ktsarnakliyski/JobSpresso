@@ -11,11 +11,13 @@ This service focuses on:
 """
 
 import json
+import logging
 import re
 from typing import Optional
 from pydantic import BaseModel
 from anthropic import AsyncAnthropic
 from app.config import get_settings
+
 from app.models.voice_profile import VoiceProfile
 from app.prompts import (
     build_analysis_prompt,
@@ -23,6 +25,8 @@ from app.prompts import (
     build_improvement_prompt,
     build_voice_extraction_prompt,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class AnalyzeRequest(BaseModel):
@@ -145,19 +149,46 @@ Always provide specific, actionable feedback with concrete suggestions."""
         """Analyze a job description using Claude."""
         prompt = build_analysis_prompt(request.jd_text, request.voice_profile)
 
+        logger.debug(f"Sending analyze request. JD length: {len(request.jd_text)} chars")
+
         message = await self.client.messages.create(
             model=self.model,
-            max_tokens=8192,  # Increased to handle detailed evidence for longer JDs
+            max_tokens=8192,  # Sonnet 4.5 max output limit
             temperature=0.3,  # Lower temperature for faster, more deterministic inference
             system=self.SYSTEM_PROMPT,
             messages=[{"role": "user", "content": prompt}],
         )
 
+        response_text = self._extract_response_text(message)
+
+        # Debug logging for API response diagnostics
+        logger.debug(
+            f"Claude response: stop_reason={message.stop_reason}, "
+            f"model={message.model}, usage={message.usage}, "
+            f"response_length={len(response_text)} chars"
+        )
+
+        # Check brace balance for truncation detection
+        open_braces = response_text.count('{')
+        close_braces = response_text.count('}')
+        open_brackets = response_text.count('[')
+        close_brackets = response_text.count(']')
+
+        if open_braces != close_braces or open_brackets != close_brackets:
+            logger.warning(
+                f"Unbalanced braces/brackets - response likely truncated! "
+                f"braces: {open_braces}/{close_braces}, brackets: {open_brackets}/{close_brackets}"
+            )
+
         # Check for truncation
         if message.stop_reason == "max_tokens":
+            logger.warning(f"Claude response truncated. stop_reason={message.stop_reason}, usage={message.usage}")
             raise ValueError("Analysis response was truncated. The job description may be too long.")
 
-        response_text = self._extract_response_text(message)
+        # Log unexpected stop reasons
+        if message.stop_reason != "end_turn":
+            logger.warning(f"Unexpected stop_reason: {message.stop_reason}, usage={message.usage}")
+
         return self._parse_json_response(response_text)
 
     async def generate(

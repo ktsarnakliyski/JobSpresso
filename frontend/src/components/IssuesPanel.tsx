@@ -9,7 +9,7 @@ import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { Issue, FixabilityGroup, CATEGORY_LABELS } from '@/types/assessment';
 import { groupIssuesByFixability, FIXABILITY_LABELS, FIXABILITY_COLORS, FIXABILITY_ICONS } from '@/lib/fixability';
 
-// Track which group should be scrolled to after expansion
+// Track which group should be scrolled to after expansion (updated scroll buffer)
 type PendingScroll = FixabilityGroup | null;
 
 interface IssuesPanelProps {
@@ -24,8 +24,8 @@ export interface IssuesPanelRef {
 
 // Smart defaults based on score
 function getDefaultOpenState(score: number, group: FixabilityGroup): boolean {
-  if (score >= 80) return false; // Excellent: all collapsed
-  if (score >= 60) return group === 'quick_win'; // Good: only quick wins
+  if (score >= 80) return group === 'quick_win'; // Excellent: show quick wins if any
+  if (score >= 60) return group === 'quick_win' || group === 'needs_attention'; // Good: show issues
   if (score >= 40) return group === 'quick_win' || group === 'needs_attention'; // Needs work
   return group === 'quick_win' || group === 'needs_attention'; // Poor: critical sections open
 }
@@ -58,9 +58,16 @@ export const IssuesPanel = forwardRef<IssuesPanelRef, IssuesPanelProps>(
         const targetRef = pendingScroll === 'quick_win' ? quickWinRef
           : pendingScroll === 'needs_attention' ? needsAttentionRef
           : fyiRef;
-        targetRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        if (targetRef.current) {
+          // Get element position and scroll with buffer for sticky header
+          const elementTop = targetRef.current.getBoundingClientRect().top + window.scrollY;
+          // Account for: navbar (~60px) + sticky command center (~280px) + margin
+          const stickyHeaderBuffer = 360;
+          window.scrollTo({ top: elementTop - stickyHeaderBuffer, behavior: 'smooth' });
+        }
         setPendingScroll(null);
-      }, 100);
+      }, 150);
 
       return () => clearTimeout(timer);
     }, [pendingScroll, openStates]);

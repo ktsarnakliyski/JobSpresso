@@ -191,13 +191,13 @@ export function GenerateForm({
         )}
 
         {/* Actions */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-3 pt-2">
           <div className="flex items-center gap-3">
             <Button onClick={onGenerate} disabled={!isFormValid || isLoading}>
               {isLoading ? (
                 <>
                   <LoadingSpinner className="-ml-1 mr-2" />
-                  <ProcessingMessages messages={GENERATE_MESSAGES} />
+                  Generating...
                 </>
               ) : 'Generate'}
             </Button>
@@ -207,9 +207,20 @@ export function GenerateForm({
               </Button>
             )}
           </div>
-          <p className="text-xs text-navy-400">
-            {isLoading ? 'Usually takes 10-15 seconds' : 'Tip: Press ⌘/Ctrl + Enter to generate'}
-          </p>
+          {isLoading ? (
+            <div className="flex items-center gap-2 text-sm text-navy-600 animate-fade-in">
+              <div className="flex gap-1">
+                <span className="w-1.5 h-1.5 bg-navy-400 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-navy-400 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-navy-400 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+              </div>
+              <ProcessingMessages messages={GENERATE_MESSAGES} />
+            </div>
+          ) : (
+            <p className="text-xs text-navy-400">
+              Tip: Press ⌘/Ctrl + Enter to generate
+            </p>
+          )}
         </div>
       </div>
     </Card>

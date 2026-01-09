@@ -176,21 +176,23 @@ export default function ProfilesPage() {
               Capture your unique writing style for consistent job descriptions.
             </p>
           </div>
-          <div className="flex gap-2">
-            <ProfileImportExport
-              hasProfiles={profiles.length > 0}
-              onExport={exportProfiles}
-              onImport={importProfiles}
-              onImportError={handleImportError}
-              onImportSuccess={handleImportSuccess}
-            />
-            <Button onClick={startCreation}>
-              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Create Profile
-            </Button>
-          </div>
+          {profiles.length > 0 && (
+            <div className="flex gap-2">
+              <ProfileImportExport
+                hasProfiles={profiles.length > 0}
+                onExport={exportProfiles}
+                onImport={importProfiles}
+                onImportError={handleImportError}
+                onImportSuccess={handleImportSuccess}
+              />
+              <Button onClick={startCreation}>
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create Profile
+              </Button>
+            </div>
+          )}
         </div>
 
         {importError && (

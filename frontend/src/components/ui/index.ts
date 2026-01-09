@@ -14,3 +14,4 @@ export { Modal } from './Modal';
 export { ConfirmDialog } from './ConfirmDialog';
 export { CollapsibleSection } from './CollapsibleSection';
 export { ProcessingMessages } from './ProcessingMessages';
+export { FullscreenTextArea } from './FullscreenTextArea';

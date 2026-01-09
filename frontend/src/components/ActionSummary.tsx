@@ -65,25 +65,31 @@ export function ActionSummary({
       )}
 
       {/* Category Status Summary */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      <div className="flex flex-wrap items-center gap-2">
         {Object.entries(categoryStatuses).map(([cat, status]) => {
           const categoryLabel = CATEGORY_LABELS[cat as AssessmentCategory] || cat;
           const statusConfig = EVIDENCE_STATUS_CONFIG[status];
           return (
             <div
               key={cat}
-              className="flex items-center gap-1.5 text-xs"
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium',
+                'transition-colors duration-150',
+                status === 'good' && 'bg-emerald-50 text-emerald-700',
+                status === 'warning' && 'bg-amber-50 text-amber-700',
+                status === 'critical' && 'bg-red-50 text-red-700'
+              )}
               title={`${categoryLabel}: ${statusConfig.label}`}
             >
               <div
                 className={cn(
-                  'w-2 h-2 rounded-full',
+                  'w-1.5 h-1.5 rounded-full',
                   status === 'good' && 'bg-emerald-500',
                   status === 'warning' && 'bg-amber-500',
                   status === 'critical' && 'bg-red-500'
                 )}
               />
-              <span className="text-navy-600 hidden sm:inline">{categoryLabel}</span>
+              <span>{categoryLabel}</span>
             </div>
           );
         })}
