@@ -200,13 +200,13 @@ export function GenerateForm({
               </>
             ) : 'Generate'}
           </Button>
-          {!isLoading && <span className="text-xs text-navy-400">⌘/Ctrl + Enter</span>}
-          {isLoading && <span className="text-xs text-navy-400">Usually takes 10-15 seconds</span>}
           {(hasResult || formData.roleTitle) && (
             <Button variant="outline" onClick={onReset}>
               Clear
             </Button>
           )}
+          {!isLoading && <span className="text-xs text-navy-400 ml-1">⌘/Ctrl + Enter</span>}
+          {isLoading && <span className="text-xs text-navy-400">Usually takes 10-15 seconds</span>}
         </div>
       </div>
     </Card>

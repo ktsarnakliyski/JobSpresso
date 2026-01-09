@@ -96,13 +96,13 @@ export default function AnalyzePage() {
                 </>
               ) : 'Analyze'}
             </Button>
-            {!isLoading && <span className="text-xs text-navy-400">⌘/Ctrl + Enter</span>}
-            {isLoading && <span className="text-xs text-navy-400">Usually takes 10-15 seconds</span>}
             {(result || jdText) && (
               <Button variant="outline" onClick={handleReset}>
                 Clear
               </Button>
             )}
+            {!isLoading && <span className="text-xs text-navy-400 ml-1">⌘/Ctrl + Enter</span>}
+            {isLoading && <span className="text-xs text-navy-400">Usually takes 10-15 seconds</span>}
           </div>
         </div>
       </Card>
