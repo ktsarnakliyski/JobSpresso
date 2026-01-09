@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, memo } from 'react';
 import { Card } from '@/components/ui';
 import { ChevronDownIcon, CheckIcon, WarningIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
@@ -63,7 +63,7 @@ interface CategoryCardProps {
   evidence: CategoryEvidenceType;
 }
 
-function CategoryCard({ category, evidence }: CategoryCardProps) {
+const CategoryCard = memo(function CategoryCard({ category, evidence }: CategoryCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const statusConfig = getEvidenceStatusConfig(evidence.status);
   const statusIcon = getStatusIcon(evidence.status as EvidenceStatus);
@@ -78,6 +78,8 @@ function CategoryCard({ category, evidence }: CategoryCardProps) {
       {/* Header - always visible */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
+        aria-expanded={isExpanded}
+        aria-controls={`category-${category}-content`}
         className="w-full flex items-center gap-4 px-4 py-3 hover:bg-navy-50/50 transition-colors"
       >
         {/* Status icon */}
@@ -112,7 +114,10 @@ function CategoryCard({ category, evidence }: CategoryCardProps) {
 
       {/* Expanded content */}
       {isExpanded && (
-        <div className="px-4 pb-4 pt-2 border-t border-navy-100 bg-navy-50/30">
+        <div
+          id={`category-${category}-content`}
+          className="px-4 pb-4 pt-2 border-t border-navy-100 bg-navy-50/30"
+        >
           {/* Opportunity - main improvement suggestion */}
           <div className="mb-4 p-3 bg-white rounded-lg border border-navy-200/60">
             <p className="text-xs font-medium text-navy-500 mb-1">Opportunity</p>
@@ -168,4 +173,4 @@ function CategoryCard({ category, evidence }: CategoryCardProps) {
       )}
     </div>
   );
-}
+});

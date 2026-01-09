@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useRef, useEffect, useMemo, useCallback } from 'react';
-import { Card, Button, TextArea, Input, LoadingSpinner } from '@/components/ui';
+import { Card, Button, TextArea, Input, LoadingSpinner, ProcessingMessages } from '@/components/ui';
 import { VoiceProfileSelector } from '@/components/VoiceProfileSelector';
 import { VoiceProfile } from '@/types/voice-profile';
 import { ProfileHint } from '@/lib/validation';
@@ -41,6 +41,15 @@ interface GenerateFormProps {
 const OPTIONAL_FIELD_NAMES = [
   'companyDescription', 'teamSize', 'salaryRange', 'location', 'benefits', 'niceToHave'
 ] as const;
+
+const GENERATE_MESSAGES = [
+  'Generating your job description...',
+  'Crafting compelling introduction...',
+  'Structuring responsibilities...',
+  'Formatting requirements...',
+  'Applying voice profile...',
+  'Polishing final output...',
+];
 
 export function GenerateForm({
   formData,
@@ -182,15 +191,17 @@ export function GenerateForm({
         )}
 
         {/* Actions */}
-        <div className="flex gap-3 pt-2">
+        <div className="flex items-center gap-3 pt-2">
           <Button onClick={onGenerate} disabled={!isFormValid || isLoading}>
             {isLoading ? (
               <>
                 <LoadingSpinner className="-ml-1 mr-2" />
-                Generating...
+                <ProcessingMessages messages={GENERATE_MESSAGES} />
               </>
             ) : 'Generate'}
           </Button>
+          {!isLoading && <span className="text-xs text-navy-400">⌘/Ctrl + Enter</span>}
+          {isLoading && <span className="text-xs text-navy-400">Usually takes 10-15 seconds</span>}
           {(hasResult || formData.roleTitle) && (
             <Button variant="outline" onClick={onReset}>
               Clear

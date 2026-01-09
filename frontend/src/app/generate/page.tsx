@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { ErrorCard } from '@/components/ui';
 import { useGenerate, GenerateInput } from '@/hooks/useGenerate';
 import { useVoiceProfiles } from '@/hooks/useVoiceProfiles';
@@ -92,6 +92,26 @@ export default function GeneratePage() {
     setFormData(initialFormData);
     reset();
   }, [reset]);
+
+  // Check if form is valid for keyboard shortcut
+  const isFormValid =
+    formData.roleTitle.trim() &&
+    formData.responsibilities.trim() &&
+    formData.requirements.trim();
+
+  // Keyboard shortcut: Cmd/Ctrl+Enter to generate
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (isFormValid && !isLoading) {
+          handleGenerate();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFormValid, isLoading, handleGenerate]);
 
   return (
     <div className="space-y-8">

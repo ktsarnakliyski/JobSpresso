@@ -3,16 +3,54 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { Card, Button, ConfirmDialog } from '@/components/ui';
 import { useVoiceProfiles } from '@/hooks/useVoiceProfiles';
 import { useVoiceExtraction } from '@/hooks/useVoiceExtraction';
 import {
   ProfileList,
   ProfileImportExport,
-  CreateProfileWizard,
-  EditProfileModal,
 } from '@/components/profiles';
 import { VoiceProfile } from '@/types/voice-profile';
+
+// Dynamic imports for conditionally rendered components
+const CreateProfileWizard = dynamic(
+  () => import('@/components/profiles/CreateProfileWizard').then(mod => mod.CreateProfileWizard),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-8">
+        <div className="animate-fade-up">
+          <div className="h-8 w-48 bg-navy-100 rounded-lg shimmer mb-2" />
+          <div className="h-4 w-72 bg-navy-100 rounded shimmer" />
+        </div>
+        <Card className="animate-scale-in">
+          <div className="space-y-4">
+            <div className="h-6 w-32 bg-navy-100 rounded shimmer" />
+            <div className="h-32 bg-navy-100 rounded-xl shimmer" />
+          </div>
+        </Card>
+      </div>
+    )
+  }
+);
+
+const EditProfileModal = dynamic(
+  () => import('@/components/profiles/EditProfileModal').then(mod => mod.EditProfileModal),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="space-y-8">
+        <Card className="animate-scale-in">
+          <div className="space-y-4">
+            <div className="h-6 w-48 bg-navy-100 rounded shimmer" />
+            <div className="h-64 bg-navy-100 rounded-xl shimmer" />
+          </div>
+        </Card>
+      </div>
+    )
+  }
+);
 
 type PageView = 'list' | 'create' | 'edit';
 

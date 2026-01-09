@@ -25,7 +25,11 @@ export function VoiceProfileSelector({
         <label className="block text-sm font-medium text-navy-700 mb-2">
           Voice Profile
         </label>
-        <div className="h-11 bg-navy-100 rounded-xl shimmer" />
+        <div
+          className="h-11 bg-navy-100 rounded-xl shimmer"
+          role="status"
+          aria-label="Loading voice profiles"
+        />
       </div>
     );
   }

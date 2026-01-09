@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useMemo, useRef, forwardRef, useImperativeHandle, useState, useCallback, useEffect } from 'react';
+import { useMemo, useRef, forwardRef, useImperativeHandle, useState, useCallback, useEffect, memo } from 'react';
 import { cn } from '@/lib/utils';
 import { Card, InlineCopyButton } from '@/components/ui';
 import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
@@ -141,7 +141,7 @@ interface IssueGroupProps {
   onToggle: (isOpen: boolean) => void;
 }
 
-function IssueGroup({ group, issues, isOpen, onToggle }: IssueGroupProps) {
+const IssueGroup = memo(function IssueGroup({ group, issues, isOpen, onToggle }: IssueGroupProps) {
   const Icon = FIXABILITY_ICONS[group];
   const label = FIXABILITY_LABELS[group];
   const { colors } = FIXABILITY_COLORS[group];
@@ -171,7 +171,7 @@ function IssueGroup({ group, issues, isOpen, onToggle }: IssueGroupProps) {
       </div>
     </CollapsibleSection>
   );
-}
+});
 
 // Check if a suggestion is vague advice vs actionable (specific replacement)
 function isVagueSuggestion(suggestion: string | undefined): boolean {
@@ -204,7 +204,7 @@ interface IssueCardProps {
   issue: Issue;
 }
 
-function IssueCard({ issue }: IssueCardProps) {
+const IssueCard = memo(function IssueCard({ issue }: IssueCardProps) {
   const hasDiff = issue.found && issue.suggestion;
   const suggestionIsActionable = isActionableSuggestion(issue.suggestion);
 
@@ -279,4 +279,4 @@ function IssueCard({ issue }: IssueCardProps) {
       )}
     </div>
   );
-}
+});

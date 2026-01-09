@@ -3,6 +3,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
@@ -29,9 +30,12 @@ export function Layout({ children }: LayoutProps) {
               href="/"
               className="flex items-center gap-2 group"
             >
-              <img
+              <Image
                 src="/logo.png"
                 alt="JobSpresso"
+                width={144}
+                height={36}
+                priority
                 className="h-9 w-auto transition-transform duration-300 group-hover:scale-[1.02]"
               />
             </Link>

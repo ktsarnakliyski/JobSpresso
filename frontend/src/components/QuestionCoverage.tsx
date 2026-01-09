@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { Card } from '@/components/ui';
 import { CheckIcon, QuestionIcon, ChevronDownIcon } from '@/components/icons';
 import { cn } from '@/lib/utils';
@@ -178,78 +178,94 @@ interface QuestionItemProps {
   question: QuestionCoverageType;
 }
 
-function QuestionItem({ question }: QuestionItemProps) {
+const QuestionItem = memo(function QuestionItem({ question }: QuestionItemProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hasDetails = question.evidence || question.suggestion;
 
-  return (
-    <div className="px-4 py-3 bg-white">
+  const content = (
+    <>
+      {/* Status icon */}
       <div
-        className={cn('flex items-start gap-3', hasDetails && 'cursor-pointer')}
-        onClick={() => hasDetails && setIsExpanded(!isExpanded)}
+        className={cn(
+          'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
+          question.isAnswered ? 'bg-emerald-100' : 'bg-navy-100'
+        )}
       >
-        {/* Status icon */}
-        <div
+        {question.isAnswered ? (
+          <CheckIcon className="w-4 h-4 text-emerald-600" />
+        ) : (
+          <QuestionIcon className="w-4 h-4 text-navy-400" />
+        )}
+      </div>
+
+      {/* Question content */}
+      <div className="flex-1 min-w-0 text-left">
+        <p
           className={cn(
-            'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
-            question.isAnswered ? 'bg-emerald-100' : 'bg-navy-100'
+            'text-sm font-medium',
+            question.isAnswered ? 'text-navy-900' : 'text-navy-600'
           )}
         >
-          {question.isAnswered ? (
-            <CheckIcon className="w-4 h-4 text-emerald-600" />
-          ) : (
-            <QuestionIcon className="w-4 h-4 text-navy-400" />
+          {question.questionText}
+        </p>
+
+        {question.impactStat && (
+          <p className="text-xs text-navy-500 mt-1">{question.impactStat}</p>
+        )}
+      </div>
+
+      {/* Expand indicator */}
+      {hasDetails && (
+        <ChevronDownIcon
+          isExpanded={isExpanded}
+          className="w-4 h-4 text-navy-400 flex-shrink-0"
+        />
+      )}
+    </>
+  );
+
+  return (
+    <div className="px-4 py-3 bg-white">
+      {hasDetails ? (
+        <button
+          type="button"
+          onClick={() => setIsExpanded(!isExpanded)}
+          aria-expanded={isExpanded}
+          className={cn(
+            'w-full flex items-start gap-3 cursor-pointer',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-navy-500 focus-visible:ring-offset-2 rounded-lg'
           )}
+        >
+          {content}
+        </button>
+      ) : (
+        <div className="flex items-start gap-3">
+          {content}
         </div>
+      )}
 
-        {/* Question content */}
-        <div className="flex-1 min-w-0">
-          <p
-            className={cn(
-              'text-sm font-medium',
-              question.isAnswered ? 'text-navy-900' : 'text-navy-600'
-            )}
-          >
-            {question.questionText}
-          </p>
-
-          {/* Impact stat - always show */}
-          {question.impactStat && (
-            <p className="text-xs text-navy-500 mt-1">{question.impactStat}</p>
+      {/* Expandable details */}
+      {isExpanded && (
+        <div className="mt-3 ml-9 space-y-2">
+          {question.isAnswered && question.evidence && (
+            <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
+              <p className="text-xs font-medium text-emerald-700 mb-1">
+                Found in your posting:
+              </p>
+              <p className="text-sm text-emerald-900 italic">
+                &quot;{question.evidence}&quot;
+              </p>
+            </div>
           )}
 
-          {/* Expandable details */}
-          {isExpanded && (
-            <div className="mt-3 space-y-2">
-              {question.isAnswered && question.evidence && (
-                <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-100">
-                  <p className="text-xs font-medium text-emerald-700 mb-1">
-                    Found in your posting:
-                  </p>
-                  <p className="text-sm text-emerald-900 italic">
-                    &quot;{question.evidence}&quot;
-                  </p>
-                </div>
-              )}
-
-              {!question.isAnswered && question.suggestion && (
-                <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
-                  <p className="text-xs font-medium text-amber-700 mb-1">Suggestion:</p>
-                  <p className="text-sm text-amber-900">{question.suggestion}</p>
-                </div>
-              )}
+          {!question.isAnswered && question.suggestion && (
+            <div className="p-3 bg-amber-50 rounded-lg border border-amber-100">
+              <p className="text-xs font-medium text-amber-700 mb-1">Suggestion:</p>
+              <p className="text-sm text-amber-900">{question.suggestion}</p>
             </div>
           )}
         </div>
-
-        {/* Expand indicator */}
-        {hasDetails && (
-          <ChevronDownIcon
-            isExpanded={isExpanded}
-            className="w-4 h-4 text-navy-400 flex-shrink-0"
-          />
-        )}
-      </div>
+      )}
     </div>
   );
-}
+});

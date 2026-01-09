@@ -14,6 +14,7 @@ export function BackButton({ onClick, label = 'Back', className }: BackButtonPro
   return (
     <button
       onClick={onClick}
+      aria-label={`Go back: ${label}`}
       className={cn(
         'text-navy-600 hover:text-navy-800 text-sm flex items-center gap-1 mb-4',
         className

@@ -117,12 +117,18 @@ export function CircularScore({
       )}
     >
       {/* Circular Score Ring */}
-      <div className="relative" style={{ width: sizeConfig.size, height: sizeConfig.size }}>
+      <div
+        className="relative"
+        style={{ width: sizeConfig.size, height: sizeConfig.size }}
+        role="img"
+        aria-label={`Score: ${animatedScore} out of 100, rated ${config.label}`}
+      >
         {/* Background ring */}
         <svg
           className="absolute inset-0 -rotate-90"
           width={sizeConfig.size}
           height={sizeConfig.size}
+          aria-hidden="true"
         >
           <circle
             cx={center}
@@ -140,6 +146,7 @@ export function CircularScore({
           className="absolute inset-0 -rotate-90"
           width={sizeConfig.size}
           height={sizeConfig.size}
+          aria-hidden="true"
         >
           <circle
             cx={center}

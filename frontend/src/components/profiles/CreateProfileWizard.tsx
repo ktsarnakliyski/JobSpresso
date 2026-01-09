@@ -4,6 +4,7 @@
 
 import { useState, useCallback } from 'react';
 import { Card } from '@/components/ui';
+import { cn } from '@/lib/utils';
 import {
   PathSelection,
   ExampleUpload,
@@ -18,12 +19,63 @@ import {
   CreationMethod,
 } from '@/types/voice-profile';
 
+const WIZARD_STEPS = [
+  { id: 'path-select', label: 'Choose Path' },
+  { id: 'input', label: 'Input' },
+  { id: 'preview', label: 'Preview' },
+  { id: 'edit', label: 'Customize' },
+] as const;
+
 type WizardStep =
   | 'path-select' // Choose creation path
   | 'examples-upload' // Upload example JDs
   | 'guided' // Answer questionnaire
   | 'preview' // Show extracted voice
   | 'edit'; // Fine-tune profile
+
+function getStepIndex(step: WizardStep): number {
+  switch (step) {
+    case 'path-select': return 0;
+    case 'examples-upload':
+    case 'guided': return 1;
+    case 'preview': return 2;
+    case 'edit': return 3;
+    default: return 0;
+  }
+}
+
+interface StepIndicatorProps {
+  currentStep: WizardStep;
+}
+
+function StepIndicator({ currentStep }: StepIndicatorProps) {
+  const currentIndex = getStepIndex(currentStep);
+
+  return (
+    <div className="mb-8 animate-fade-up">
+      {/* Step dots */}
+      <div className="flex items-center justify-center gap-2 mb-3">
+        {WIZARD_STEPS.map((step, index) => (
+          <div
+            key={step.id}
+            className={cn(
+              'w-2.5 h-2.5 rounded-full transition-all duration-300',
+              index < currentIndex && 'bg-navy-400',
+              index === currentIndex && 'bg-navy-800 scale-125',
+              index > currentIndex && 'bg-navy-200'
+            )}
+            aria-current={index === currentIndex ? 'step' : undefined}
+          />
+        ))}
+      </div>
+
+      {/* Step label */}
+      <p className="text-center text-sm text-navy-500">
+        Step {currentIndex + 1} of {WIZARD_STEPS.length}: {WIZARD_STEPS[currentIndex].label}
+      </p>
+    </div>
+  );
+}
 
 interface CreateProfileWizardProps {
   isExtracting: boolean;
@@ -136,6 +188,7 @@ export function CreateProfileWizard({
   if (step === 'path-select') {
     return (
       <div className="space-y-8">
+        <StepIndicator currentStep={step} />
         <Card className="animate-scale-in">
           <PathSelection onSelect={handlePathSelect} />
         </Card>
@@ -146,6 +199,7 @@ export function CreateProfileWizard({
   if (step === 'examples-upload') {
     return (
       <div className="space-y-8">
+        <StepIndicator currentStep={step} />
         <Card className="animate-scale-in">
           <ExampleUpload
             onSubmit={handleExamplesSubmit}
@@ -163,6 +217,7 @@ export function CreateProfileWizard({
   if (step === 'guided') {
     return (
       <div className="space-y-8">
+        <StepIndicator currentStep={step} />
         <Card className="animate-scale-in">
           <GuidedQuestionnaire
             onComplete={handleGuidedComplete}
@@ -176,6 +231,7 @@ export function CreateProfileWizard({
   if (step === 'preview' && extractedVoice) {
     return (
       <div className="space-y-8">
+        <StepIndicator currentStep={step} />
         <div className="animate-scale-in">
           <VoiceDNAPreview
             result={extractedVoice}
@@ -191,6 +247,7 @@ export function CreateProfileWizard({
   if (step === 'edit') {
     return (
       <div className="space-y-8">
+        <StepIndicator currentStep={step} />
         <Card className="animate-scale-in">
           <VoiceProfileEditor
             initialData={extractedVoice || undefined}

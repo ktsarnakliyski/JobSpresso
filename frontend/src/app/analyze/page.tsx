@@ -2,12 +2,21 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
-import { Card, Button, TextArea, LoadingSpinner, ErrorCard, CopyButton } from '@/components/ui';
+import { useState, useCallback, useEffect } from 'react';
+import { Card, Button, TextArea, LoadingSpinner, ErrorCard, CopyButton, ProcessingMessages } from '@/components/ui';
 import { VoiceProfileSelector } from '@/components/VoiceProfileSelector';
 import { ScoreDisplay } from '@/components/ScoreDisplay';
 import { useAnalyze } from '@/hooks/useAnalyze';
 import { useVoiceProfiles } from '@/hooks/useVoiceProfiles';
+
+const ANALYZE_MESSAGES = [
+  'Analyzing your job description...',
+  'Checking for inclusive language...',
+  'Evaluating readability...',
+  'Assessing structure and completeness...',
+  'Comparing to best practices...',
+  'Generating improvement suggestions...',
+];
 
 export default function AnalyzePage() {
   const [jdText, setJdText] = useState('');
@@ -39,6 +48,20 @@ export default function AnalyzePage() {
     reset();
   }, [reset]);
 
+  // Keyboard shortcut: Cmd/Ctrl+Enter to analyze
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+        e.preventDefault();
+        if (jdText.trim() && !isLoading) {
+          handleAnalyze();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [jdText, isLoading, handleAnalyze]);
+
   return (
     <div className="space-y-8">
       <div className="animate-fade-up">
@@ -58,6 +81,7 @@ export default function AnalyzePage() {
             onChange={(e) => setJdText(e.target.value)}
             rows={10}
             disabled={isLoading}
+            showWordCount
           />
 
           <VoiceProfileSelector
@@ -67,7 +91,7 @@ export default function AnalyzePage() {
             isLoaded={isLoaded}
           />
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex items-center gap-3 pt-2">
             <Button
               onClick={handleAnalyze}
               disabled={!jdText.trim() || isLoading}
@@ -75,10 +99,12 @@ export default function AnalyzePage() {
               {isLoading ? (
                 <>
                   <LoadingSpinner className="-ml-1 mr-2" />
-                  Analyzing...
+                  <ProcessingMessages messages={ANALYZE_MESSAGES} />
                 </>
               ) : 'Analyze'}
             </Button>
+            {!isLoading && <span className="text-xs text-navy-400">⌘/Ctrl + Enter</span>}
+            {isLoading && <span className="text-xs text-navy-400">Usually takes 10-15 seconds</span>}
             {(result || jdText) && (
               <Button variant="outline" onClick={handleReset}>
                 Clear
