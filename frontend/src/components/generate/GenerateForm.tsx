@@ -191,22 +191,25 @@ export function GenerateForm({
         )}
 
         {/* Actions */}
-        <div className="flex items-center gap-3 pt-2">
-          <Button onClick={onGenerate} disabled={!isFormValid || isLoading}>
-            {isLoading ? (
-              <>
-                <LoadingSpinner className="-ml-1 mr-2" />
-                <ProcessingMessages messages={GENERATE_MESSAGES} />
-              </>
-            ) : 'Generate'}
-          </Button>
-          {(hasResult || formData.roleTitle) && (
-            <Button variant="outline" onClick={onReset}>
-              Clear
+        <div className="space-y-2 pt-2">
+          <div className="flex items-center gap-3">
+            <Button onClick={onGenerate} disabled={!isFormValid || isLoading}>
+              {isLoading ? (
+                <>
+                  <LoadingSpinner className="-ml-1 mr-2" />
+                  <ProcessingMessages messages={GENERATE_MESSAGES} />
+                </>
+              ) : 'Generate'}
             </Button>
-          )}
-          {!isLoading && <span className="text-xs text-navy-400 ml-1">⌘/Ctrl + Enter</span>}
-          {isLoading && <span className="text-xs text-navy-400">Usually takes 10-15 seconds</span>}
+            {(hasResult || formData.roleTitle) && (
+              <Button variant="outline" onClick={onReset}>
+                Clear
+              </Button>
+            )}
+          </div>
+          <p className="text-xs text-navy-400">
+            {isLoading ? 'Usually takes 10-15 seconds' : 'Tip: Press ⌘/Ctrl + Enter to generate'}
+          </p>
         </div>
       </div>
     </Card>

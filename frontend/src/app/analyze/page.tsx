@@ -84,25 +84,28 @@ export default function AnalyzePage() {
             isLoaded={isLoaded}
           />
 
-          <div className="flex items-center gap-3 pt-2">
-            <Button
-              onClick={handleAnalyze}
-              disabled={!jdText.trim() || isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <LoadingSpinner className="-ml-1 mr-2" />
-                  <ProcessingMessages messages={ANALYZE_MESSAGES} />
-                </>
-              ) : 'Analyze'}
-            </Button>
-            {(result || jdText) && (
-              <Button variant="outline" onClick={handleReset}>
-                Clear
+          <div className="space-y-2 pt-2">
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={handleAnalyze}
+                disabled={!jdText.trim() || isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <LoadingSpinner className="-ml-1 mr-2" />
+                    <ProcessingMessages messages={ANALYZE_MESSAGES} />
+                  </>
+                ) : 'Analyze'}
               </Button>
-            )}
-            {!isLoading && <span className="text-xs text-navy-400 ml-1">⌘/Ctrl + Enter</span>}
-            {isLoading && <span className="text-xs text-navy-400">Usually takes 10-15 seconds</span>}
+              {(result || jdText) && (
+                <Button variant="outline" onClick={handleReset}>
+                  Clear
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-navy-400">
+              {isLoading ? 'Usually takes 10-15 seconds' : 'Tip: Press ⌘/Ctrl + Enter to analyze'}
+            </p>
           </div>
         </div>
       </Card>
