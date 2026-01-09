@@ -82,27 +82,21 @@ jobs:
             cd ${{ env.PROJECT_PATH }}
             docker compose -f docker-compose.prod.yml up -d --build
 
-      # HIGH FIX: Run health check on server, not GitHub runner
       - name: Health check with retries
         id: health
         continue-on-error: true
-        uses: appleboy/ssh-action@v1.1.0
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
+        run: |
+          sleep 15
+          for i in 1 2 3 4 5 6; do
+            if curl -sf ${{ env.PROD_URL }}/api/health; then
+              echo "Health check passed on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i failed, waiting 10s..."
             sleep 10
-            for i in 1 2 3 4 5 6; do
-              if curl -sf http://localhost:8000/api/health; then
-                echo "Health check passed on attempt $i"
-                exit 0
-              fi
-              echo "Attempt $i failed, waiting 10s..."
-              sleep 10
-            done
-            echo "Health check failed after 6 attempts"
-            exit 1
+          done
+          echo "Health check failed after 6 attempts"
+          exit 1
 
       # CRITICAL FIX: Use reset --hard to avoid detached HEAD
       - name: Rollback on failure
