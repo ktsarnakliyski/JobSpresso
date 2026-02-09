@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import posthog from 'posthog-js';
 
 const COPY_FEEDBACK_DURATION_MS = 2500;
 
@@ -34,6 +35,12 @@ export function useCopyToClipboard(): UseCopyToClipboardResult {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
+
+      // Capture copy event
+      posthog.capture('jd_copied', {
+        text_length: text.length,
+        word_count: text.split(/\s+/).length,
+      });
 
       // Clear any existing timeout
       if (timeoutRef.current) clearTimeout(timeoutRef.current);

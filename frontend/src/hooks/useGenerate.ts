@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import posthog from 'posthog-js';
 import { apiRequest } from '@/lib/api';
 import { GenerateResult } from '@/types/assessment';
 import { VoiceProfile } from '@/types/voice-profile';
@@ -63,10 +64,32 @@ export function useGenerate() {
         };
 
         setResult(transformed);
+
+        // Capture successful generation event
+        posthog.capture('jd_generation_completed', {
+          role_title: input.roleTitle,
+          word_count: transformed.wordCount,
+          has_voice_profile: !!voiceProfile,
+          has_company_description: !!input.companyDescription,
+          has_salary_range: !!input.salaryRange,
+          has_location: !!input.location,
+          has_benefits: !!input.benefits?.length,
+          responsibilities_count: input.responsibilities.length,
+          requirements_count: input.requirements.length,
+        });
+
         return transformed;
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Generation failed';
         setError(message);
+
+        // Capture generation failure event
+        posthog.capture('jd_generation_failed', {
+          role_title: input.roleTitle,
+          error_message: message,
+          has_voice_profile: !!voiceProfile,
+        });
+
         throw e;
       } finally {
         setIsLoading(false);

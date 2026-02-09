@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import posthog from 'posthog-js';
 import { apiRequest } from '@/lib/api';
 import {
   AssessmentResult,
@@ -175,10 +176,31 @@ export function useAnalyze() {
 
         const transformed = transformResponse(response);
         setResult(transformed);
+
+        // Capture successful analysis event
+        posthog.capture('jd_analysis_completed', {
+          overall_score: transformed.overallScore,
+          interpretation: transformed.interpretation,
+          issues_count: transformed.issues.length,
+          critical_issues_count: transformed.issues.filter(i => i.severity === 'critical').length,
+          questions_answered: transformed.questionsAnswered,
+          questions_total: transformed.questionsTotal,
+          has_voice_profile: !!voiceProfile,
+          word_count: jdText.split(/\s+/).length,
+        });
+
         return transformed;
       } catch (e) {
         const message = e instanceof Error ? e.message : 'Analysis failed';
         setError(message);
+
+        // Capture analysis failure event
+        posthog.capture('jd_analysis_failed', {
+          error_message: message,
+          has_voice_profile: !!voiceProfile,
+          word_count: jdText.split(/\s+/).length,
+        });
+
         throw e;
       } finally {
         setIsLoading(false);

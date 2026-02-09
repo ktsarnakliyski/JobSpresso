@@ -1,6 +1,7 @@
 // frontend/src/hooks/useVoiceExtraction.ts
 
 import { useState, useCallback } from 'react';
+import posthog from 'posthog-js';
 import {
   VoiceExtractionResult,
   ToneStyle,
@@ -104,10 +105,27 @@ export function useVoiceExtraction(): UseVoiceExtractionReturn {
         };
 
         setResult(transformed);
+
+        // Capture successful voice extraction event
+        posthog.capture('voice_extraction_completed', {
+          examples_count: examples.length,
+          detected_tone: transformed.tone,
+          detected_address_style: transformed.addressStyle,
+          detected_sentence_style: transformed.sentenceStyle,
+          suggested_rules_count: transformed.suggestedRules?.length ?? 0,
+        });
+
         return transformed;
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unknown error';
         setError(message);
+
+        // Capture voice extraction failure event
+        posthog.capture('voice_extraction_failed', {
+          examples_count: examples.length,
+          error_message: message,
+        });
+
         return null;
       } finally {
         setIsExtracting(false);

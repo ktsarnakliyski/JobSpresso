@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import posthog from 'posthog-js';
 import {
   VoiceProfile,
   createDefaultVoiceProfile,
@@ -98,6 +99,16 @@ export function useVoiceProfiles() {
       return [...prev, newProfile];
     });
 
+    // Capture profile creation event
+    posthog.capture('voice_profile_created', {
+      profile_name: newProfile.name,
+      created_via: newProfile.createdVia,
+      tone: newProfile.tone,
+      has_rules: (newProfile.rules?.length ?? 0) > 0,
+      rules_count: newProfile.rules?.length ?? 0,
+      is_default: newProfile.isDefault,
+    });
+
     return newProfile;
   }, []);
 
@@ -117,6 +128,9 @@ export function useVoiceProfiles() {
   }, []);
 
   const deleteProfile = useCallback((id: string) => {
+    // Capture deletion event before removing
+    posthog.capture('voice_profile_deleted');
+
     setProfiles((prev) => prev.filter((p) => p.id !== id));
     // Use functional update to avoid stale closure
     setSelectedProfileId((prev) => (prev === id ? null : prev));
@@ -124,6 +138,11 @@ export function useVoiceProfiles() {
 
   const selectProfile = useCallback((id: string | null) => {
     setSelectedProfileId(id);
+
+    // Capture profile selection event (only when selecting, not deselecting)
+    if (id) {
+      posthog.capture('voice_profile_selected');
+    }
   }, []);
 
   const selectedProfile = profiles.find((p) => p.id === selectedProfileId) || null;
@@ -140,6 +159,11 @@ export function useVoiceProfiles() {
     a.click();
 
     URL.revokeObjectURL(url);
+
+    // Capture export event
+    posthog.capture('profiles_exported', {
+      profiles_count: profiles.length,
+    });
   }, [profiles]);
 
   const importProfiles = useCallback((jsonString: string) => {
@@ -172,6 +196,12 @@ export function useVoiceProfiles() {
       );
 
       setProfiles((prev) => [...prev, ...withNewIds]);
+
+      // Capture successful import event
+      posthog.capture('profiles_imported', {
+        imported_count: withNewIds.length,
+      });
+
       return { success: true, count: withNewIds.length };
     } catch {
       return { success: false, error: 'Invalid JSON format' };

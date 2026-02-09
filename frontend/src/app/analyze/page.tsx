@@ -3,6 +3,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import posthog from 'posthog-js';
 import { Card, Button, LoadingSpinner, ErrorCard, CopyButton, ProcessingMessages, FullscreenTextArea } from '@/components/ui';
 import { VoiceProfileSelector } from '@/components/VoiceProfileSelector';
 import { ScoreDisplay } from '@/components/ScoreDisplay';
@@ -40,12 +41,25 @@ export default function AnalyzePage() {
 
   const handleAnalyze = useCallback(async () => {
     if (!jdText.trim()) return;
+
+    // Capture analysis started event
+    posthog.capture('jd_analysis_started', {
+      word_count: jdText.split(/\s+/).length,
+      has_voice_profile: !!selectedProfile,
+    });
+
     await analyze(jdText, selectedProfile || undefined);
   }, [jdText, selectedProfile, analyze]);
 
   const handleReassess = useCallback(async () => {
     const textToAnalyze = improvedText || result?.improvedText;
     if (!textToAnalyze?.trim()) return;
+
+    // Capture reassess clicked event
+    posthog.capture('reassess_clicked', {
+      has_user_edits: improvedText !== result?.improvedText && !!improvedText,
+      word_count: textToAnalyze.split(/\s+/).length,
+    });
 
     // 1. Update the input with improved text
     setJdText(textToAnalyze);

@@ -2,6 +2,7 @@
 
 'use client';
 
+import posthog from 'posthog-js';
 import { Card, Button, CopyButton } from '@/components/ui';
 
 export interface GenerateResultData {
@@ -24,6 +25,12 @@ export function GenerateResult({ result, roleTitle }: GenerateResultProps) {
     a.download = `${roleTitle.replace(/\s+/g, '_')}_Job_Description.txt`;
     a.click();
     URL.revokeObjectURL(url);
+
+    // Capture download event
+    posthog.capture('jd_downloaded', {
+      role_title: roleTitle,
+      word_count: result.wordCount,
+    });
   };
 
   return (
