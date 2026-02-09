@@ -28,6 +28,7 @@ export default function AnalyzePage() {
   const [jdText, setJdText] = useState('');
   const [improvedText, setImprovedText] = useState('');
   const resultsRef = useRef<HTMLDivElement>(null);
+  const reassessTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
     profiles,
@@ -41,13 +42,6 @@ export default function AnalyzePage() {
 
   const handleAnalyze = useCallback(async () => {
     if (!jdText.trim()) return;
-
-    // Capture analysis started event
-    posthog.capture('jd_analysis_started', {
-      word_count: jdText.split(/\s+/).length,
-      has_voice_profile: !!selectedProfile,
-    });
-
     await analyze(jdText, selectedProfile || undefined);
   }, [jdText, selectedProfile, analyze]);
 
@@ -56,7 +50,7 @@ export default function AnalyzePage() {
     if (!textToAnalyze?.trim()) return;
 
     // Capture reassess clicked event
-    posthog.capture('reassess_clicked', {
+    posthog.capture('jd_reassess_clicked', {
       has_user_edits: improvedText !== result?.improvedText && !!improvedText,
       word_count: textToAnalyze.split(/\s+/).length,
     });
@@ -70,10 +64,18 @@ export default function AnalyzePage() {
     });
 
     // 3. Wait for scroll to complete, then analyze
-    setTimeout(async () => {
+    if (reassessTimeoutRef.current) clearTimeout(reassessTimeoutRef.current);
+    reassessTimeoutRef.current = setTimeout(async () => {
       await analyze(textToAnalyze, selectedProfile || undefined);
     }, SCROLL_ANIMATION_DELAY_MS);
   }, [improvedText, result?.improvedText, selectedProfile, analyze]);
+
+  // Cleanup reassess timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (reassessTimeoutRef.current) clearTimeout(reassessTimeoutRef.current);
+    };
+  }, []);
 
   const handleReset = useCallback(() => {
     setJdText('');

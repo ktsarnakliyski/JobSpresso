@@ -147,7 +147,7 @@ export function GenerateForm({
         {/* Optional Fields Toggle */}
         <button
           type="button"
-          onClick={() => setShowOptionalManual(!showOptional)}
+          onClick={() => setShowOptionalManual(!showOptionalManual)}
           className="flex items-center gap-2 text-sm text-navy-600 hover:text-navy-900 transition-colors font-medium"
         >
           <svg

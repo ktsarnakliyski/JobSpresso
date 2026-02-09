@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { forwardRef, useRef } from 'react';
+import React from 'react';
 import { TextArea, Input } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
@@ -23,12 +23,8 @@ interface OptionalFieldsProps {
   fieldRefs: React.MutableRefObject<Record<string, HTMLDivElement | null>>;
 }
 
-export const OptionalFields = forwardRef<HTMLDivElement, OptionalFieldsProps>(
-  function OptionalFields({ data, onChange, isLoading, highlightedFields, fieldRefs }, ref) {
-    const localRefs = useRef<Record<string, HTMLDivElement | null>>({});
-
+export function OptionalFields({ data, onChange, isLoading, highlightedFields, fieldRefs }: OptionalFieldsProps) {
     const setFieldRef = (field: string) => (el: HTMLDivElement | null) => {
-      localRefs.current[field] = el;
       fieldRefs.current[field] = el;
     };
 
@@ -40,7 +36,7 @@ export const OptionalFields = forwardRef<HTMLDivElement, OptionalFieldsProps>(
     };
 
     return (
-      <div ref={ref} className="space-y-5 pl-5 border-l-2 border-navy-200 animate-fade-up">
+      <div className="space-y-5 pl-5 border-l-2 border-navy-200 animate-fade-up">
         <div
           ref={setFieldRef('companyDescription')}
           className={cn('rounded-xl transition-all duration-300', getHighlightClass('companyDescription'))}
@@ -125,5 +121,4 @@ export const OptionalFields = forwardRef<HTMLDivElement, OptionalFieldsProps>(
         </div>
       </div>
     );
-  }
-);
+}

@@ -141,7 +141,7 @@ export function FullscreenTextArea({
                 </h2>
                 {showWordCount && (
                   <p className="text-sm text-navy-500">
-                    {value.trim() ? value.trim().split(/\s+/).filter(Boolean).length : 0} words
+                    {wordCount} words
                   </p>
                 )}
               </div>

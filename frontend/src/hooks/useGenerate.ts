@@ -37,6 +37,12 @@ export function useGenerate() {
       setIsLoading(true);
       setError(null);
 
+      // Capture generation started event
+      posthog.capture('jd_generation_started', {
+        role_title: input.roleTitle,
+        has_voice_profile: !!voiceProfile,
+      });
+
       try {
         const body: Record<string, unknown> = {
           role_title: input.roleTitle,

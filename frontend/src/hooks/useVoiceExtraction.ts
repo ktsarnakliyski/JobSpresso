@@ -1,5 +1,7 @@
 // frontend/src/hooks/useVoiceExtraction.ts
 
+'use client';
+
 import { useState, useCallback } from 'react';
 import posthog from 'posthog-js';
 import {

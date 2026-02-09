@@ -1,6 +1,6 @@
 # JobSpresso Frontend
 
-Next.js 14 application with TypeScript and Tailwind CSS.
+Next.js 16 application with TypeScript and Tailwind CSS.
 
 ## Development
 

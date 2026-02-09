@@ -3,7 +3,6 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
-import posthog from 'posthog-js';
 import { ErrorCard } from '@/components/ui';
 import { useGenerate, GenerateInput } from '@/hooks/useGenerate';
 import { useVoiceProfiles } from '@/hooks/useVoiceProfiles';
@@ -49,15 +48,6 @@ export default function GeneratePage() {
     if (!formData.roleTitle.trim() || !formData.responsibilities.trim() || !formData.requirements.trim()) {
       return;
     }
-
-    // Capture generation started event
-    posthog.capture('jd_generation_started', {
-      role_title: formData.roleTitle.trim(),
-      has_voice_profile: !!selectedProfile,
-      has_company_description: !!formData.companyDescription.trim(),
-      has_salary_range: !!formData.salaryRange.trim(),
-      has_location: !!formData.location.trim(),
-    });
 
     const input: GenerateInput = {
       roleTitle: formData.roleTitle.trim(),

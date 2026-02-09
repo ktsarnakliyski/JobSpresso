@@ -172,7 +172,7 @@ export function useVoiceProfiles() {
     URL.revokeObjectURL(url);
 
     // Capture export event
-    posthog.capture('profiles_exported', {
+    posthog.capture('voice_profiles_exported', {
       profiles_count: profiles.length,
     });
   }, [profiles]);
@@ -209,7 +209,7 @@ export function useVoiceProfiles() {
       setProfiles((prev) => [...prev, ...withNewIds]);
 
       // Capture successful import event
-      posthog.capture('profiles_imported', {
+      posthog.capture('voice_profiles_imported', {
         imported_count: withNewIds.length,
       });
 

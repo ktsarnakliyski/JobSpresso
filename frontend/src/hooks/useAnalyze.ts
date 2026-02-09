@@ -160,6 +160,12 @@ export function useAnalyze() {
       setIsLoading(true);
       setError(null);
 
+      // Capture analysis started event
+      posthog.capture('jd_analysis_started', {
+        word_count: jdText.split(/\s+/).length,
+        has_voice_profile: !!voiceProfile,
+      });
+
       try {
         const body: { jd_text: string; voice_profile?: ReturnType<typeof transformVoiceProfileToBackend> } = {
           jd_text: jdText,
