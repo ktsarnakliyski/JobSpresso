@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useRef } from 'react';
 import { TextArea, Input } from '@/components/ui';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +25,13 @@ interface OptionalFieldsProps {
 
 export const OptionalFields = forwardRef<HTMLDivElement, OptionalFieldsProps>(
   function OptionalFields({ data, onChange, isLoading, highlightedFields, fieldRefs }, ref) {
+    const localRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+    const setFieldRef = (field: string) => (el: HTMLDivElement | null) => {
+      localRefs.current[field] = el;
+      fieldRefs.current[field] = el;
+    };
+
     const getHighlightClass = (field: string) => {
       if (highlightedFields.has(field)) {
         return 'ring-2 ring-amber-300 border-amber-300';
@@ -35,7 +42,7 @@ export const OptionalFields = forwardRef<HTMLDivElement, OptionalFieldsProps>(
     return (
       <div ref={ref} className="space-y-5 pl-5 border-l-2 border-navy-200 animate-fade-up">
         <div
-          ref={(el) => { fieldRefs.current.companyDescription = el; }}
+          ref={setFieldRef('companyDescription')}
           className={cn('rounded-xl transition-all duration-300', getHighlightClass('companyDescription'))}
         >
           <TextArea
@@ -50,7 +57,7 @@ export const OptionalFields = forwardRef<HTMLDivElement, OptionalFieldsProps>(
 
         <div className="grid md:grid-cols-2 gap-5">
           <div
-            ref={(el) => { fieldRefs.current.teamSize = el; }}
+            ref={setFieldRef('teamSize')}
             className={cn('rounded-xl transition-all duration-300', getHighlightClass('teamSize'))}
           >
             <Input
@@ -63,7 +70,7 @@ export const OptionalFields = forwardRef<HTMLDivElement, OptionalFieldsProps>(
           </div>
 
           <div
-            ref={(el) => { fieldRefs.current.salaryRange = el; }}
+            ref={setFieldRef('salaryRange')}
             className={cn('rounded-xl transition-all duration-300', getHighlightClass('salaryRange'))}
           >
             <Input
@@ -77,7 +84,7 @@ export const OptionalFields = forwardRef<HTMLDivElement, OptionalFieldsProps>(
         </div>
 
         <div
-          ref={(el) => { fieldRefs.current.location = el; }}
+          ref={setFieldRef('location')}
           className={cn('rounded-xl transition-all duration-300', getHighlightClass('location'))}
         >
           <Input
@@ -90,7 +97,7 @@ export const OptionalFields = forwardRef<HTMLDivElement, OptionalFieldsProps>(
         </div>
 
         <div
-          ref={(el) => { fieldRefs.current.benefits = el; }}
+          ref={setFieldRef('benefits')}
           className={cn('rounded-xl transition-all duration-300', getHighlightClass('benefits'))}
         >
           <TextArea
@@ -104,7 +111,7 @@ export const OptionalFields = forwardRef<HTMLDivElement, OptionalFieldsProps>(
         </div>
 
         <div
-          ref={(el) => { fieldRefs.current.niceToHave = el; }}
+          ref={setFieldRef('niceToHave')}
           className={cn('rounded-xl transition-all duration-300', getHighlightClass('niceToHave'))}
         >
           <TextArea

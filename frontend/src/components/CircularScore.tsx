@@ -2,7 +2,7 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { AssessmentResult } from '@/types/assessment';
 
@@ -71,7 +71,7 @@ export function CircularScore({
   className,
 }: CircularScoreProps) {
   const [animatedScore, setAnimatedScore] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const config = INTERPRETATION_CONFIG[interpretation];
   const sizeConfig = SIZE_CONFIG[size];
@@ -84,7 +84,13 @@ export function CircularScore({
 
   // Animate score on mount
   useEffect(() => {
-    setIsVisible(true);
+    const el = containerRef.current;
+    if (el) {
+      requestAnimationFrame(() => {
+        el.classList.remove('opacity-0', 'translate-y-4');
+        el.classList.add('opacity-100', 'translate-y-0');
+      });
+    }
     const duration = 1200;
     const startTime = Date.now();
     let animationId: number;
@@ -110,9 +116,9 @@ export function CircularScore({
 
   return (
     <div
+      ref={containerRef}
       className={cn(
-        'flex flex-col items-center gap-4 transition-all duration-700',
-        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4',
+        'flex flex-col items-center gap-4 transition-all duration-700 opacity-0 translate-y-4',
         className
       )}
     >

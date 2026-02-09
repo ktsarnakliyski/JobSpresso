@@ -65,7 +65,7 @@ export function GenerateForm({
   isProfilesLoaded,
   profileHints,
 }: GenerateFormProps) {
-  const [showOptional, setShowOptional] = React.useState(false);
+  const [showOptionalManual, setShowOptionalManual] = React.useState(false);
   const [highlightedFields, setHighlightedFields] = React.useState<Set<string>>(new Set());
   const fieldRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -74,13 +74,8 @@ export function GenerateForm({
     return profileHints.some((h) => OPTIONAL_FIELD_NAMES.includes(h.field as typeof OPTIONAL_FIELD_NAMES[number]));
   }, [profileHints]);
 
-  // Auto-expand optional section when profile needs those fields
-  useEffect(() => {
-    if (hintsNeedOptionalSection && selectedProfile) {
-      setShowOptional(true);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hintsNeedOptionalSection, selectedProfile]);
+  // Auto-expand when profile needs optional fields, or when manually toggled
+  const showOptional = showOptionalManual || (hintsNeedOptionalSection && !!selectedProfile);
 
   // Clear highlights after 3 seconds
   useEffect(() => {
@@ -101,7 +96,7 @@ export function GenerateForm({
   const handleShowMeWhere = useCallback(() => {
     if (profileHints.length === 0) return;
 
-    if (hintsNeedOptionalSection && !showOptional) setShowOptional(true);
+    if (hintsNeedOptionalSection && !showOptional) setShowOptionalManual(true);
 
     setHighlightedFields(new Set(profileHints.map((h) => h.field)));
 
@@ -152,7 +147,7 @@ export function GenerateForm({
         {/* Optional Fields Toggle */}
         <button
           type="button"
-          onClick={() => setShowOptional(!showOptional)}
+          onClick={() => setShowOptionalManual(!showOptional)}
           className="flex items-center gap-2 text-sm text-navy-600 hover:text-navy-900 transition-colors font-medium"
         >
           <svg

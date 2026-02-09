@@ -31,12 +31,6 @@ export function FullscreenTextArea({
 }: FullscreenTextAreaProps) {
   const [isHovering, setIsHovering] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-
-  // Only render portal on client
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   // Cleanup body overflow on unmount (prevent memory leak)
   useEffect(() => {
@@ -128,7 +122,7 @@ export function FullscreenTextArea({
       </div>
 
       {/* Fullscreen Modal */}
-      {isMounted && isFullscreen && createPortal(
+      {typeof document !== 'undefined' && isFullscreen && createPortal(
         <div
           className="fixed inset-0 z-50 flex flex-col bg-white animate-fade-in"
           onKeyDown={handleKeyDown}

@@ -36,33 +36,23 @@ function migrateProfile(profile: Partial<VoiceProfile>): VoiceProfile {
 }
 
 export function useVoiceProfiles() {
-  const [profiles, setProfiles] = useState<VoiceProfile[]>([]);
-  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  // Load from localStorage on mount
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
+  const [profiles, setProfiles] = useState<VoiceProfile[]>(() => {
+    if (typeof window === 'undefined') return [];
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
-        const parsed = JSON.parse(stored);
-        // Migrate any legacy profiles to new format
-        const migrated = parsed.map(migrateProfile);
-        setProfiles(migrated);
+        return JSON.parse(stored).map(migrateProfile);
       } catch (e) {
         console.error('Failed to parse stored profiles:', e);
       }
     }
-
-    const selectedId = localStorage.getItem(SELECTED_PROFILE_KEY);
-    if (selectedId) {
-      setSelectedProfileId(selectedId);
-    }
-
-    setIsLoaded(true);
-  }, []);
+    return [];
+  });
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(SELECTED_PROFILE_KEY);
+  });
+  const isLoaded = true;
 
   // Save to localStorage whenever profiles change (with debounce to prevent race conditions)
   useEffect(() => {
