@@ -37,23 +37,34 @@ function migrateProfile(profile: Partial<VoiceProfile>): VoiceProfile {
 }
 
 export function useVoiceProfiles() {
-  const [profiles, setProfiles] = useState<VoiceProfile[]>(() => {
-    if (typeof window === 'undefined') return [];
+  const [profiles, setProfiles] = useState<VoiceProfile[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load from localStorage on mount — this is synchronizing with an external store,
+  // which is a valid use of setState in an effect (runs after hydration to avoid mismatch)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
-        return JSON.parse(stored).map(migrateProfile);
+        const parsed = JSON.parse(stored);
+        const migrated = parsed.map(migrateProfile);
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- loading from external store on mount
+        setProfiles(migrated);
       } catch (e) {
         console.error('Failed to parse stored profiles:', e);
       }
     }
-    return [];
-  });
-  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(() => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem(SELECTED_PROFILE_KEY);
-  });
-  const isLoaded = true;
+
+    const selectedId = localStorage.getItem(SELECTED_PROFILE_KEY);
+    if (selectedId) {
+      setSelectedProfileId(selectedId);
+    }
+
+    setIsLoaded(true);
+  }, []);
 
   // Save to localStorage whenever profiles change (with debounce to prevent race conditions)
   useEffect(() => {
