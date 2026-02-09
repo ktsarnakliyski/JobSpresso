@@ -9,7 +9,7 @@ JobSpresso is a job description analyzer and generator with voice profiles for a
 ## Architecture
 
 **Monorepo structure:**
-- `frontend/` — Next.js 14 + TypeScript + Tailwind CSS
+- `frontend/` — Next.js 16 (Turbopack) + TypeScript + Tailwind CSS + PostHog analytics
 - `backend/` — FastAPI + Python 3.12
 - `docker-compose.yml` — Development (ports 3100/8100)
 - `docker-compose.prod.yml` — Production (internal ports, Caddy network)
@@ -19,6 +19,8 @@ JobSpresso is a job description analyzer and generator with voice profiles for a
 - Assessment combines rule-based scoring (readability, structure, completeness) with AI scoring (inclusivity, clarity, voice match)
 - PostgreSQL for usage analytics only, not user data
 - Single `.env` file in root for all services
+- PostHog for product analytics — initialized via `instrumentation-client.ts`, proxied through `/ingest` rewrites in `next.config.mjs`
+- ESLint 9 flat config (`eslint.config.mjs`) — do not create `.eslintrc` files
 
 ## Commands
 
@@ -131,6 +133,6 @@ This is necessary because `docker compose restart` doesn't clear anonymous volum
 
 ## Files Reference
 
-- `.env.example` — Environment template (copy to `.env`)
+- `.env.example` — Environment template (copy to `.env`, includes PostHog keys)
 - `Caddyfile.example` — Caddy config template for production
 - `DEPLOYMENT_TEMP.md` — Full deployment guide (gitignored)
