@@ -39,7 +39,7 @@ export function OptionalFields({ data, onChange, isLoading, highlightedFields, f
       <div className="space-y-5 pl-5 border-l-2 border-navy-200 animate-fade-up">
         <div
           ref={setFieldRef('companyDescription')}
-          className={cn('rounded-xl transition-all duration-300', getHighlightClass('companyDescription'))}
+          className={cn('form-scroll-section rounded-xl transition-all duration-300', getHighlightClass('companyDescription'))}
         >
           <TextArea
             label="Company Description"
@@ -54,7 +54,7 @@ export function OptionalFields({ data, onChange, isLoading, highlightedFields, f
         <div className="grid md:grid-cols-2 gap-5">
           <div
             ref={setFieldRef('teamSize')}
-            className={cn('rounded-xl transition-all duration-300', getHighlightClass('teamSize'))}
+            className={cn('form-scroll-section rounded-xl transition-all duration-300', getHighlightClass('teamSize'))}
           >
             <Input
               label="Team Size"
@@ -67,7 +67,7 @@ export function OptionalFields({ data, onChange, isLoading, highlightedFields, f
 
           <div
             ref={setFieldRef('salaryRange')}
-            className={cn('rounded-xl transition-all duration-300', getHighlightClass('salaryRange'))}
+            className={cn('form-scroll-section rounded-xl transition-all duration-300', getHighlightClass('salaryRange'))}
           >
             <Input
               label="Salary Range"
@@ -81,7 +81,7 @@ export function OptionalFields({ data, onChange, isLoading, highlightedFields, f
 
         <div
           ref={setFieldRef('location')}
-          className={cn('rounded-xl transition-all duration-300', getHighlightClass('location'))}
+          className={cn('form-scroll-section rounded-xl transition-all duration-300', getHighlightClass('location'))}
         >
           <Input
             label="Location"
@@ -94,7 +94,7 @@ export function OptionalFields({ data, onChange, isLoading, highlightedFields, f
 
         <div
           ref={setFieldRef('benefits')}
-          className={cn('rounded-xl transition-all duration-300', getHighlightClass('benefits'))}
+          className={cn('form-scroll-section rounded-xl transition-all duration-300', getHighlightClass('benefits'))}
         >
           <TextArea
             label="Benefits"
@@ -108,7 +108,7 @@ export function OptionalFields({ data, onChange, isLoading, highlightedFields, f
 
         <div
           ref={setFieldRef('niceToHave')}
-          className={cn('rounded-xl transition-all duration-300', getHighlightClass('niceToHave'))}
+          className={cn('form-scroll-section rounded-xl transition-all duration-300', getHighlightClass('niceToHave'))}
         >
           <TextArea
             label="Nice-to-Have"

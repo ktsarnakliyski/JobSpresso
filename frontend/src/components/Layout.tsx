@@ -61,7 +61,7 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </div>
       </nav>
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-10 pb-10">
         {children}
       </main>
       <footer className="border-t border-navy-200/50 py-8 mt-auto">

@@ -119,29 +119,35 @@ export function GenerateForm({
       <div className="space-y-6">
         {/* Required Fields */}
         <div className="space-y-5">
-          <Input
-            label={<>Role Title <span className="text-red-500">*</span></>}
-            placeholder="e.g., Senior Software Engineer"
-            value={formData.roleTitle}
-            onChange={(e) => onChange('roleTitle', e.target.value)}
-            disabled={isLoading}
-          />
-          <TextArea
-            label={<>Responsibilities <span className="text-red-500">*</span></>}
-            placeholder="Enter each responsibility on a new line..."
-            value={formData.responsibilities}
-            onChange={(e) => onChange('responsibilities', e.target.value)}
-            rows={5}
-            disabled={isLoading}
-          />
-          <TextArea
-            label={<>Requirements <span className="text-red-500">*</span></>}
-            placeholder="Enter each requirement on a new line..."
-            value={formData.requirements}
-            onChange={(e) => onChange('requirements', e.target.value)}
-            rows={5}
-            disabled={isLoading}
-          />
+          <div className="form-scroll-section">
+            <Input
+              label={<>Role Title <span className="text-red-500">*</span></>}
+              placeholder="e.g., Senior Software Engineer"
+              value={formData.roleTitle}
+              onChange={(e) => onChange('roleTitle', e.target.value)}
+              disabled={isLoading}
+            />
+          </div>
+          <div className="form-scroll-section">
+            <TextArea
+              label={<>Responsibilities <span className="text-red-500">*</span></>}
+              placeholder="Enter each responsibility on a new line..."
+              value={formData.responsibilities}
+              onChange={(e) => onChange('responsibilities', e.target.value)}
+              rows={5}
+              disabled={isLoading}
+            />
+          </div>
+          <div className="form-scroll-section">
+            <TextArea
+              label={<>Requirements <span className="text-red-500">*</span></>}
+              placeholder="Enter each requirement on a new line..."
+              value={formData.requirements}
+              onChange={(e) => onChange('requirements', e.target.value)}
+              rows={5}
+              disabled={isLoading}
+            />
+          </div>
         </div>
 
         {/* Optional Fields Toggle */}
