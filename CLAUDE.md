@@ -132,3 +132,9 @@ Backend tests cover: models, scoring, assessment service, Claude service, voice 
 - **Git:** Push to `main` triggers deploy. Remote: `git@github.com:ktsarnakliyski/JobSpresso.git`.
 - **UI components:** Custom primitives in `frontend/src/components/ui/` (no component library).
 - **Backend patterns:** Pydantic models, service layer, router layer, prompt templates separated.
+
+## Ecosystem Conventions
+This project is part of the OpenClaw ecosystem. If making changes that touch notifications, cron jobs, task board integration, or shared scripts, read the conventions file in the infrastructure repo:
+- **Repo:** github.com/clawdex/clawd
+- **File:** `CONVENTIONS.md`
+- Key rules: use notify.py for notifications, taskWorker functions for task board, cron-lockrun.sh for cron jobs, check 1Password for secrets.
