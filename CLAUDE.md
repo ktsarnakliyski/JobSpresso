@@ -1,138 +1,134 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## What This Is
 
-## Project Overview
+JobSpresso is a job description analyzer and generator with voice profiles for agency recruiters and HR professionals. It combines rule-based scoring with AI-powered analysis (Claude API) to assess JD quality across six categories, generate improved JDs, and match writing to custom voice profiles. Live at https://jobspresso.ktexperience.com.
 
-JobSpresso is a job description analyzer and generator with voice profiles for agency recruiters and HR professionals. It combines rule-based scoring with AI-powered analysis using Claude API.
+## Stack
 
-## Architecture
+**Frontend:** Next.js 16 (Turbopack) + React 19 + TypeScript + Tailwind CSS 3.4 + PostHog analytics
+**Backend:** FastAPI + Python 3.12 + Anthropic SDK + textstat + SQLAlchemy/Alembic + PostgreSQL 16
+**Infrastructure:** Docker Compose (dev + prod), Caddy reverse proxy (prod), GitHub Actions CI/CD
+**Key libraries:** slowapi (rate limiting), pydantic-settings, httpx, posthog-js, clsx, tailwind-merge
 
-**Monorepo structure:**
-- `frontend/` — Next.js 16 (Turbopack) + TypeScript + Tailwind CSS + PostHog analytics
-- `backend/` — FastAPI + Python 3.12
-- `docker-compose.yml` — Development (ports 3100/8100)
-- `docker-compose.prod.yml` — Production (internal ports, Caddy network)
-
-**Key architectural decisions:**
-- Voice profiles stored in browser localStorage (no auth in MVP)
-- Assessment combines rule-based scoring (readability, structure, completeness) with AI scoring (inclusivity, clarity, voice match)
-- PostgreSQL for usage analytics only, not user data
-- Single `.env` file in root for all services
-- PostHog for product analytics — initialized via `instrumentation-client.ts`, proxied through `/ingest` rewrites in `next.config.mjs`
-- ESLint 9 flat config (`eslint.config.mjs`) — do not create `.eslintrc` files
-
-## Commands
-
-### Development
+## Local Dev
 
 ```bash
-# Start all services (recommended)
+# Prerequisites: Docker Desktop running
+
+# 1. Copy env file
+cp .env.example .env
+# Fill in ANTHROPIC_API_KEY (required), PostHog keys (optional)
+
+# 2. Start all services
 docker compose up
 
-# Frontend only (port 3100)
-cd frontend && npm run dev -- -p 3100
+# Frontend: http://localhost:3100 | Backend: http://localhost:8100 | DB: localhost:5433
 
-# Backend only (port 8100)
-cd backend && uvicorn app.main:app --reload --port 8100
+# Frontend only (without Docker)
+cd frontend && npm install && npm run dev -- -p 3100
+
+# Backend only (without Docker)
+cd backend && pip install -r requirements.txt && uvicorn app.main:app --reload --port 8100
 ```
 
-### Testing
+Hot reload works for both frontend (Next.js) and backend (uvicorn --reload) via volume mounts.
 
+**Docker cache gotcha:** Frontend uses anonymous volume for `.next`. If you see "Element type is invalid" or "React Client Manifest" errors:
 ```bash
-# Backend tests
-cd backend && pytest
-
-# Single test file
-cd backend && pytest tests/test_models.py -v
-
-# Frontend build check
-cd frontend && npm run build
-```
-
-### Docker
-
-```bash
-docker compose up -d          # Start in background
-docker compose down           # Stop all
-docker compose down -v        # Stop + remove database volume
-docker compose logs -f backend  # Follow backend logs
-```
-
-### Production
-
-```bash
-# Build and deploy (on server)
-docker compose -f docker-compose.prod.yml up -d --build
-
-# View logs
-docker compose -f docker-compose.prod.yml logs -f
-
-# Restart after code changes
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-## API Endpoints
-
-- `POST /api/analyze` — Analyze a job description
-- `POST /api/generate` — Generate a job description from inputs
-- `POST /api/voice/extract` — Extract voice profile from example JDs
-- `GET /health` — Health check
-
-## Assessment Scoring
-
-Six categories with weights:
-- Inclusivity (25%) — AI + bias word lists
-- Readability (20%) — Flesch-Kincaid + AI jargon detection
-- Structure (15%) — Rule-based section detection
-- Completeness (15%) — Checklist (salary, location, benefits)
-- Clarity (10%) — AI detection of vague phrases
-- Voice Match (15%) — AI comparison to selected profile
-
-## Ports
-
-| Environment | Frontend | Backend | Database |
-|-------------|----------|---------|----------|
-| Development | 3100 | 8100 | 5433 |
-| Production | 3000 (internal) | 8000 (internal) | 5432 (internal) |
-
-Production services are only accessible via Caddy reverse proxy on ports 80/443.
-
-## When to Rebuild
-
-**Always rebuild after:**
-- Changing Python dependencies (`backend/requirements.txt`)
-- Changing Node dependencies (`frontend/package.json`)
-- Modifying Dockerfiles
-- Changing environment variables in docker-compose
-
-```bash
-# Development - rebuild all
-docker compose up --build
-
-# Development - rebuild specific service
-docker compose up --build backend
-
-# Production
-docker compose -f docker-compose.prod.yml up -d --build
-```
-
-**Hot reload works for:**
-- Frontend code changes (Next.js)
-- Backend code changes (uvicorn --reload)
-
-**IMPORTANT - Frontend Cache in Docker:**
-The frontend container uses an anonymous volume for `.next` cache (`/app/.next`). This cache persists across restarts and is separate from the host filesystem. If you see "Element type is invalid" or "React Client Manifest" errors after adding new components:
-
-```bash
-# Recreate the frontend container to clear its .next cache
 docker compose stop frontend && docker compose rm -f frontend && docker compose up -d frontend
 ```
 
-This is necessary because `docker compose restart` doesn't clear anonymous volumes.
+## Deploy
 
-## Files Reference
+**CI/CD:** Push to `main` → GitHub Actions (`.github/workflows/deploy.yml`):
+1. SSH to server, `git pull`, build backend, run `pytest`
+2. If tests pass → `docker compose -f docker-compose.prod.yml up -d --build`
+3. Health check with 6 retries (10s apart)
+4. On failure → automatic rollback to pre-deploy SHA via `git reset --hard`
+5. Discord notifications on success/failure
 
-- `.env.example` — Environment template (copy to `.env`, includes PostHog keys)
-- `Caddyfile.example` — Caddy config template for production
-- `DEPLOYMENT_TEMP.md` — Full deployment guide (gitignored)
+**Prod ports:** Frontend 3000, Backend 8000, DB 5432 — all internal, exposed via Caddy on 80/443.
+
+**Rebuild required after:** changing `requirements.txt`, `package.json`, Dockerfiles, or env vars in docker-compose.
+
+## Test
+
+```bash
+# Backend (14 test files, pytest)
+cd backend && pytest
+cd backend && pytest tests/test_models.py -v  # single file
+
+# Frontend (build check — no unit tests yet)
+cd frontend && npm run build
+
+# Lint
+cd frontend && npm run lint
+```
+
+Backend tests cover: models, scoring, assessment service, Claude service, voice profiles, prompt security, field mappings, question analyzer, frontend sync, and all three API endpoints (analyze, generate, voice).
+
+## Project Structure
+
+```
+├── frontend/
+│   ├── src/
+│   │   ├── app/              # Next.js pages: /, /analyze, /generate, /profiles
+│   │   ├── components/       # UI components + voice/ subfolder
+│   │   │   ├── ui/           # Reusable primitives (Button, Card, Modal, TextArea, etc.)
+│   │   │   ├── voice/        # VoiceProfileEditor, GuidedQuestionnaire, ExampleUpload
+│   │   │   ├── AnalysisHistory.tsx, ScoreDisplay.tsx, CircularScore.tsx, etc.
+│   │   ├── hooks/            # useAnalysisHistory
+│   │   ├── lib/              # Utilities
+│   │   └── types/            # TypeScript types (assessment, voice-profile, history)
+│   ├── instrumentation-client.ts  # PostHog init
+│   ├── next.config.mjs       # PostHog /ingest proxy rewrites
+│   ├── eslint.config.mjs     # ESLint 9 flat config (do NOT create .eslintrc)
+│   └── Dockerfile / Dockerfile.prod
+├── backend/
+│   ├── app/
+│   │   ├── main.py           # FastAPI app, CORS, security headers, rate limiting
+│   │   ├── config.py         # pydantic-settings config
+│   │   ├── rate_limit.py     # slowapi rate limiter
+│   │   ├── routers/          # analyze.py, generate.py, voice.py
+│   │   ├── services/         # assessment_service, claude_service, scoring, issue_detector, question_analyzer, field_mappings
+│   │   ├── models/           # assessment.py, voice_profile.py
+│   │   └── prompts/          # analysis, generation, improvement, voice_extraction prompts
+│   ├── tests/                # 14 test files
+│   └── Dockerfile / Dockerfile.prod
+├── docker-compose.yml        # Dev (ports 3100/8100/5433)
+├── docker-compose.prod.yml   # Prod (Caddy network, internal ports)
+├── .github/workflows/deploy.yml  # CI/CD with rollback
+├── analyses/                 # Code audit docs
+├── docs/plans/               # Feature planning docs
+├── .env.example              # Env template
+└── Caddyfile.example         # Caddy config template
+```
+
+## Current State
+
+- **MVP complete and deployed.** Analyze, generate, and voice profile features all working in production.
+- **Analysis history** recently added — localStorage-backed, last 10 analyses with restore.
+- **Voice profiles** stored in browser localStorage (no auth in MVP).
+- **PostgreSQL** used for usage analytics only, not user data.
+- **PostHog** integrated for product analytics.
+- **Security:** Rate limiting (slowapi), request size limits (500KB), security headers, prompt security tests.
+- **Latest task:** Analysis history + result persistence (TASK-SPEC.md).
+
+## Known Issues
+
+- No frontend unit tests — only build check and lint.
+- No auth system — all data in localStorage (MVP scope).
+- Frontend `.next` Docker cache can cause stale component errors (see Local Dev section).
+- `date-fns` is NOT a dependency — use inline time formatting helpers.
+
+## Conventions
+
+- **Monorepo:** Single `.env` file in root for all services.
+- **ESLint 9 flat config** — `eslint.config.mjs`, never `.eslintrc`.
+- **PostHog** — initialized in `instrumentation-client.ts`, proxied through `/ingest` rewrites.
+- **Scoring:** Six categories with weights — Inclusivity (25%), Readability (20%), Structure (15%), Completeness (15%), Voice Match (15%), Clarity (10%).
+- **API endpoints:** `POST /api/analyze`, `POST /api/generate`, `POST /api/voice/extract`, `GET /health`.
+- **Git:** Push to `main` triggers deploy. Remote: `git@github.com:ktsarnakliyski/JobSpresso.git`.
+- **UI components:** Custom primitives in `frontend/src/components/ui/` (no component library).
+- **Backend patterns:** Pydantic models, service layer, router layer, prompt templates separated.
