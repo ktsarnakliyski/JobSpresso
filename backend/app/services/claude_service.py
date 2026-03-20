@@ -270,13 +270,10 @@ Always provide specific, actionable feedback with concrete suggestions."""
 
         response_text = self._extract_response_text(message)
 
-        # Extract JSON from response
-        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
-        if json_match:
-            try:
-                return json.loads(json_match.group())
-            except json.JSONDecodeError:
-                pass
+        try:
+            return self._parse_json_response(response_text)
+        except (ValueError, json.JSONDecodeError) as e:
+            logger.warning("extract_voice_profile: JSON parsing failed, returning defaults. Error: %s", e)
 
         # Fallback defaults
         return {

@@ -158,7 +158,7 @@ class VoiceProfile(BaseModel):
         if active_rules:
             parts.append("\nRULES (MUST FOLLOW):")
             for rule in active_rules:
-                parts.append(f"- {rule.text}")
+                parts.append(f"- <rule>{rule.text}</rule>")
 
         # Format guidance - free text description
         if self.format_guidance:
